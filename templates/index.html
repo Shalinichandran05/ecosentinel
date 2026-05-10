@@ -507,6 +507,62 @@
     <span>India-wide forest department use case</span>
   </footer>
 
+  <!-- Cursor glow element -->
+  <div id="cursor-glow" style="
+    pointer-events: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 0; height: 0;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+  ">
+    <div style="
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 220px; height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle,
+        rgba(45, 212, 191, 0.09) 0%,
+        rgba(56, 189, 248, 0.06) 35%,
+        rgba(45, 212, 191, 0.02) 60%,
+        transparent 75%
+      );
+      filter: blur(8px);
+      mix-blend-mode: screen;
+    "></div>
+    <div style="
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      background: radial-gradient(circle,
+        rgba(45, 212, 191, 0.13) 0%,
+        rgba(56, 189, 248, 0.08) 45%,
+        transparent 70%
+      );
+      filter: blur(4px);
+      mix-blend-mode: screen;
+    "></div>
+  </div>
+
+  <script>
+    (function() {
+      const glow = document.getElementById('cursor-glow');
+
+      document.addEventListener('mousemove', e => {
+        glow.style.left = e.clientX + 'px';
+        glow.style.top  = e.clientY + 'px';
+      });
+
+      document.addEventListener('mouseleave', () => {
+        glow.style.left = '-300px';
+        glow.style.top  = '-300px';
+      });
+    })();
+  </script>
+
   <script>
     fetch('/api/summary').then(r=>r.json()).then(d=>{
       document.getElementById('k-incidents').textContent = d.total_incidents;
