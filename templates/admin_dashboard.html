@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+{% block page_title %}Admin Dashboard{% endblock %}
+{% block content %}
+
+<div class="card" style="margin-bottom:24px;background:linear-gradient(135deg,#1e293b,#1a2540);border-color:#334155">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:16px;font-weight:700;color:#e2e8f0;margin-bottom:6px">State-wide control room</div>
+      <div style="font-size:12.5px;color:#94a3b8;line-height:1.6">Monitor incident volume, risk exposure, losses, species patterns, and district hotspots across India.</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a href="/admin/incidents" class="btn btn-primary">Verify Records</a>
+      <a href="/admin/users" class="btn btn-outline">Manage Users</a>
+      <a href="/bi" class="btn btn-primary">Open BI Analytics</a>
+      <a href="/map" class="btn btn-outline">Open Geo Map</a>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header">
+    <div class="card-title">BI Filters</div>
+    <span class="card-muted">Charts and KPIs update dynamically</span>
+  </div>
+  <div class="filter-bar" style="margin-bottom:0">
+    <select id="admin-species-filter" onchange="loadAdminAnalytics()"><option value="">All Species</option></select>
+    <select id="admin-district-filter" onchange="loadAdminAnalytics()"><option value="">All Districts</option></select>
+    <select id="admin-season-filter" onchange="loadAdminAnalytics()"><option value="">All Seasons</option></select>
+    <select id="admin-risk-filter" onchange="loadAdminAnalytics()"><option value="">All Risk</option></select>
+    <select id="admin-status-filter" onchange="loadAdminAnalytics()"><option value="">All Status</option></select>
+    <button class="btn btn-outline" onclick="resetAdminFilters()">Reset</button>
+  </div>
+</div>
+
+<div class="kpi-grid" id="admin-kpis"></div>
+
+<div class="charts-grid charts-2" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Species Distribution</div>
+      <span class="card-muted">System overview</span>
+    </div>
+    <img id="admin-species" class="chart-img" src="" alt="Loading species distribution"/>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Conflict Types</div>
+      <span class="card-muted">Incident category mix</span>
+    </div>
+    <img id="admin-conflict" class="chart-img" src="" alt="Loading conflict types"/>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header">
+    <div class="card-title">Monthly Incident Trend</div>
+    <span class="card-muted">Longitudinal view</span>
+  </div>
+  <img id="admin-trend" class="chart-img" src="" alt="Loading monthly trend"/>
+</div>
+
+<div class="charts-grid charts-2">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Top 10 Districts</div>
+      <span class="card-muted">Hotspot ranking</span>
+    </div>
+    <img id="admin-districts" class="chart-img" src="" alt="Loading hotspot districts"/>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Response Actions</div>
+      <span class="card-muted">Operational follow-up</span>
+    </div>
+    <img id="admin-response" class="chart-img" src="" alt="Loading response actions"/>
+  </div>
+</div>
+
+<script>
+function fillSelect(id, opts){
+  const sel=document.getElementById(id);
+  opts.forEach(o=>{
+    const opt=document.createElement('option');
+    opt.value=o;
+    opt.textContent=o;
+    sel.appendChild(opt);
+  });
+}
+
+function adminParams(){
+  return new URLSearchParams({
+    species:document.getElementById('admin-species-filter').value,
+    district:document.getElementById('admin-district-filter').value,
+    season:document.getElementById('admin-season-filter').value,
+    risk:document.getElementById('admin-risk-filter').value,
+    status:document.getElementById('admin-status-filter').value,
+  });
+}
+
+function loadAdminKpis(params){
+  fetch('/api/summary?'+params).then(r=>r.json()).then(d=>{
+  const defs=[
+    {label:'Total Incidents', val:d.total_incidents, sub:'Recorded cases', color:'#22d3ee'},
+    {label:'Districts Affected', val:d.districts_affected, sub:'Selected scope', color:'#818cf8'},
+    {label:'High-Risk Incidents', val:d.high_risk_incidents, sub:'Risk score >= 20', color:'#fb923c'},
+    {label:'Pending Verification', val:d.pending_verification, sub:'Admin review', color:'#fbbf24'},
+    {label:'Human Casualties', val:d.total_casualties, sub:'People harmed', color:'#f87171'},
+    {label:'Livestock Lost', val:d.total_livestock, sub:'Animals lost', color:'#fbbf24'},
+    {label:'Crop Damage', val:d.total_crop_ha+' ha', sub:'Total hectares', color:'#34d399'},
+  ];
+  document.getElementById('admin-kpis').innerHTML=defs.map(k=>`
+    <div class="kpi-card" style="--kpi-color:${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.val}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+});
+}
+
+function loadChart(endpoint, imgId, params){
+  fetch(endpoint+'?'+params).then(r=>r.json()).then(d=>{
+    document.getElementById(imgId).src='data:image/png;base64,'+d.img;
+  });
+}
+
+function loadAdminAnalytics(){
+  const params=adminParams();
+  loadAdminKpis(params);
+  loadChart('/api/charts/species_donut', 'admin-species', params);
+  loadChart('/api/charts/conflict_bar', 'admin-conflict', params);
+  loadChart('/api/charts/monthly_trend', 'admin-trend', params);
+  loadChart('/api/charts/top_districts', 'admin-districts', params);
+  loadChart('/api/charts/response_pie', 'admin-response', params);
+}
+
+function resetAdminFilters(){
+  ['admin-species-filter','admin-district-filter','admin-season-filter','admin-risk-filter','admin-status-filter'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+  loadAdminAnalytics();
+}
+
+fetch('/api/filters').then(r=>r.json()).then(f=>{
+  fillSelect('admin-species-filter', f.species);
+  fillSelect('admin-district-filter', f.districts);
+  fillSelect('admin-season-filter', f.seasons);
+  fillSelect('admin-risk-filter', f.risk_categories);
+  fillSelect('admin-status-filter', f.verification_statuses);
+  loadAdminAnalytics();
+});
+</script>
+{% endblock %}

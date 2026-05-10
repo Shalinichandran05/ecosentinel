@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Report Incident{% endblock %}
+{% block page_title %}Community Incident Report{% endblock %}
+{% block content %}
+
+<div class="card">
+  <div class="card-header">
+    <div>
+      <div class="card-title">Send Observation to Officer</div>
+      <div class="card-muted" style="margin-top:4px">This creates a message for officers. It does not directly edit official incident records.</div>
+    </div>
+  </div>
+  <div id="report-alert"></div>
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Incident Date</label>
+      <input type="date" id="r-date"/>
+    </div>
+    <div class="form-group">
+      <label>State</label>
+      <select id="r-state"></select>
+    </div>
+    <div class="form-group">
+      <label>District</label>
+      <input type="text" id="r-district" placeholder="Nearest district"/>
+    </div>
+    <div class="form-group">
+      <label>Place / Landmark</label>
+      <input type="text" id="r-place" placeholder="Village, road, forest edge, landmark"/>
+    </div>
+    <div class="form-group">
+      <label>Species</label>
+      <select id="r-species"></select>
+    </div>
+    <div class="form-group" style="grid-column:1/-1">
+      <label>Message</label>
+      <textarea id="r-message" rows="5" placeholder="Describe what happened, when, where, and any immediate risk." required></textarea>
+    </div>
+  </div>
+  <div style="margin-top:16px">
+    <button class="btn btn-primary" onclick="submitCommunityReport()">Send Report</button>
+  </div>
+</div>
+
+<script>
+document.getElementById('r-date').value=new Date().toISOString().slice(0,10);
+
+function fillSelect(id, values){
+  const sel=document.getElementById(id);
+  values.forEach(v=>{
+    const opt=document.createElement('option');
+    opt.value=v;
+    opt.textContent=v;
+    sel.appendChild(opt);
+  });
+}
+
+fetch('/api/filters').then(r=>r.json()).then(f=>{
+  fillSelect('r-state', f.states || []);
+  fillSelect('r-species', f.species || []);
+});
+
+function submitCommunityReport(){
+  const payload={
+    incident_date:document.getElementById('r-date').value,
+    state:document.getElementById('r-state').value,
+    district:document.getElementById('r-district').value,
+    place:document.getElementById('r-place').value,
+    animal_species:document.getElementById('r-species').value,
+    message:document.getElementById('r-message').value,
+  };
+  fetch('/api/community_reports/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r=>r.json()).then(d=>{
+      const alert=document.getElementById('report-alert');
+      if(d.success){
+        alert.innerHTML='<div class="alert alert-success">Report sent to officers. Reference #'+d.report_id+'</div>';
+        document.getElementById('r-message').value='';
+        document.getElementById('r-place').value='';
+      }else{
+        alert.innerHTML='<div class="alert alert-error">'+(d.error || 'Unable to send report')+'</div>';
+      }
+    });
+}
+</script>
+{% endblock %}

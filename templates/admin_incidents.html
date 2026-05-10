@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Incident Verification{% endblock %}
+{% block page_title %}Incident Verification{% endblock %}
+{% block content %}
+
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header">
+    <div class="card-title">Review Incident Records</div>
+    <span class="card-muted">Admin only</span>
+  </div>
+  <div class="filter-bar">
+    <input id="search" type="text" placeholder="Search district, species, notes..." oninput="loadRecords(1)"
+           style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:8px 12px;border-radius:8px;font-size:12.5px;min-width:240px"/>
+    <select id="status" onchange="loadRecords(1)">
+      <option value="">All Status</option>
+      <option>Pending</option>
+      <option>Verified</option>
+      <option>Rejected</option>
+    </select>
+    <select id="risk" onchange="loadRecords(1)">
+      <option value="">All Risk</option>
+      <option>Low</option>
+      <option>Medium</option>
+      <option>High</option>
+    </select>
+    <span id="total-count" style="font-size:12px;color:var(--text-muted);align-self:center"></span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#ID</th><th>Date</th><th>District</th><th>Species</th><th>Risk</th><th>Status</th><th>Response</th><th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="records-body">
+        <tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">Loading records</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<script>
+let currentPage=1;
+const perPage=12;
+const formatDate = value => {
+  if (!value) return '';
+  if (typeof value === 'string') return value.slice(0, 10);
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+};
+const incidentDate = row => formatDate(row.report_date) || formatDate(row.created_at);
+function riskClass(v){ return v==='High'?'chip-danger':v==='Medium'?'chip-warning':'chip-success'; }
+function statusClass(v){ return v==='Verified'?'chip-success':v==='Rejected'?'chip-danger':'chip-warning'; }
+
+function loadRecords(page=1){
+  currentPage=page;
+  const params=new URLSearchParams({
+    page,
+    per_page:perPage,
+    q:document.getElementById('search').value,
+    status:document.getElementById('status').value,
+    risk:document.getElementById('risk').value,
+  });
+  fetch('/api/incidents?'+params).then(r=>r.json()).then(d=>{
+    document.getElementById('total-count').textContent=d.total+' records found';
+    const tbody=document.getElementById('records-body');
+    if(!d.data.length){
+      tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text-muted);padding:30px">No records found</td></tr>';
+      buildPagination(0,page);
+      return;
+    }
+    tbody.innerHTML=d.data.map(r=>`
+      <tr>
+        <td style="color:var(--text-muted)">${r.incident_id}</td>
+        <td>${incidentDate(r)}</td>
+        <td>${r.district}</td>
+        <td>${r.animal_species}</td>
+        <td><span class="chip ${riskClass(r.risk_category)}">${r.risk_category}</span></td>
+        <td><span class="chip ${statusClass(r.verification_status)}">${r.verification_status}</span></td>
+        <td style="font-size:11px;color:var(--text-muted)">${r.response_action}</td>
+        <td style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="page-btn" onclick="setStatus(${r.incident_id},'Verified')">Verify</button>
+          <button class="page-btn" onclick="setStatus(${r.incident_id},'Rejected')">Reject</button>
+        </td>
+      </tr>`).join('');
+    buildPagination(d.total,page);
+  });
+}
+
+function setStatus(id,status){
+  fetch('/api/incidents/'+id+'/verify',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({status})
+  }).then(r=>r.json()).then(()=>loadRecords(currentPage));
+}
+
+function buildPagination(total,page){
+  const pages=Math.ceil(total/perPage);
+  let html='';
+  if(page>1) html+=`<button class="page-btn" onclick="loadRecords(${page-1})">Prev</button>`;
+  for(let i=Math.max(1,page-2);i<=Math.min(pages,page+2);i++)
+    html+=`<button class="page-btn ${i===page?'active':''}" onclick="loadRecords(${i})">${i}</button>`;
+  if(page<pages) html+=`<button class="page-btn" onclick="loadRecords(${page+1})">Next</button>`;
+  document.getElementById('pagination').innerHTML=html;
+}
+
+loadRecords(1);
+</script>
+{% endblock %}

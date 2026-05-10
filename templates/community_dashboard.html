@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Community Dashboard{% endblock %}
+{% block page_title %}Community Dashboard{% endblock %}
+{% block content %}
+
+<div class="card" style="margin-bottom:24px;background:linear-gradient(135deg,#1e293b,#243044);border-color:#334155">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:16px;font-weight:700;color:#e2e8f0;margin-bottom:6px">Community awareness desk</div>
+      <div style="font-size:12.5px;color:#94a3b8;line-height:1.6">View incident records, explore map and analytics, and send new field observations to officers.</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a href="/community-report" class="btn btn-primary">Report Incident</a>
+      <a href="/incidents" class="btn btn-outline">View Incidents</a>
+      <a href="/map" class="btn btn-outline">Geo Map</a>
+      <a href="/bi" class="btn btn-outline">BI Module</a>
+    </div>
+  </div>
+</div>
+
+<div class="kpi-grid" id="community-kpis"></div>
+
+<div class="charts-grid charts-2">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Species Overview</div>
+      <span class="card-muted">Read-only analytics</span>
+    </div>
+    <img id="community-species" class="chart-img" src="" alt="Loading species chart"/>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Conflict Types</div>
+      <span class="card-muted">Recorded patterns</span>
+    </div>
+    <img id="community-conflict" class="chart-img" src="" alt="Loading conflict chart"/>
+  </div>
+</div>
+
+<script>
+function loadChart(endpoint, imgId){
+  fetch(endpoint).then(r=>r.json()).then(d=>{
+    document.getElementById(imgId).src='data:image/png;base64,'+d.img;
+  });
+}
+
+fetch('/api/summary').then(r=>r.json()).then(d=>{
+  const defs=[
+    {label:'Total Incidents', val:d.total_incidents, sub:'Recorded cases', color:'#22d3ee'},
+    {label:'States Covered', val:d.states_affected, sub:'Current dataset', color:'#818cf8'},
+    {label:'Species', val:d.species_count, sub:'Observed wildlife', color:'#34d399'},
+    {label:'High Risk', val:d.high_risk_incidents, sub:'Officer priority', color:'#fb923c'},
+  ];
+  document.getElementById('community-kpis').innerHTML=defs.map(k=>`
+    <div class="kpi-card" style="--kpi-color:${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.val}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+});
+loadChart('/api/charts/species_donut', 'community-species');
+loadChart('/api/charts/conflict_bar', 'community-conflict');
+</script>
+{% endblock %}

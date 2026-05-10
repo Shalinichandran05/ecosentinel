@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Geo Map{% endblock %}
+{% block page_title %}🗺️ Geospatial Incident Map{% endblock %}
+{% block content %}
+
+<!-- Legend + filters -->
+<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <span style="font-size:12px;color:var(--text-muted)">Filter:</span>
+    <select id="map-species" onchange="applyFilter()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-muted);padding:5px 10px;border-radius:6px;font-size:12px">
+      <option value="">All Species</option>
+    </select>
+    <select id="map-season" onchange="applyFilter()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-muted);padding:5px 10px;border-radius:6px;font-size:12px">
+      <option value="">All Seasons</option>
+    </select>
+  </div>
+  <span id="map-count" style="font-size:12px;color:var(--text-muted);margin-left:auto"></span>
+</div>
+
+<!-- Legend -->
+<div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px">
+  <span style="font-size:11px;color:var(--text-muted)">Risk:</span>
+  <span style="font-size:11px"><span style="color:#f87171">●</span> High (≥20)</span>
+  <span style="font-size:11px"><span style="color:#fbbf24">●</span> Medium (10-20)</span>
+  <span style="font-size:11px"><span style="color:#34d399">●</span> Low (&lt;10)</span>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div id="map" style="height:540px;border-radius:12px"></div>
+</div>
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+<script>
+const map = L.map('map').setView([11.1,78.7],7);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  attribution:'&copy; OpenStreetMap contributors &copy; CARTO',
+  subdomains:'abcd', maxZoom:19
+}).addTo(map);
+
+let allData=[], markers=[];
+
+function riskColor(r){ return r>=20?'#f87171':r>=10?'#fbbf24':'#34d399'; }
+function riskRadius(r){ return r>=20?9:r>=10?7:5; }
+
+function clearMarkers(){ markers.forEach(m=>m.remove()); markers=[]; }
+
+function renderMarkers(data){
+  clearMarkers();
+  document.getElementById('map-count').textContent=data.length+' incidents shown';
+  data.forEach(d=>{
+    const m=L.circleMarker([d.latitude,d.longitude],{
+      radius: riskRadius(d.risk_score),
+      fillColor: riskColor(d.risk_score),
+      color:'#0f172a', weight:1.5,
+      fillOpacity:0.85
+    }).addTo(map);
+    m.bindPopup(`
+      <div style="font-family:Inter,sans-serif;min-width:200px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:3px">📍 ${d.forest_beat || d.district}</div>
+        <div style="font-size:11.5px;color:#888;margin-bottom:6px">${d.district}</div>
+        <div style="font-size:12px;color:#888;margin-bottom:8px">Incident #${d.incident_id} · ${d.report_date?d.report_date.slice(0,10):''}</div>
+        <table style="width:100%;font-size:11.5px;border-collapse:collapse">
+          <tr><td style="color:#888;padding:2px 0">Species</td><td><b>${d.animal_species}</b></td></tr>
+          <tr><td style="color:#888;padding:2px 0">Conflict</td><td>${d.conflict_type}</td></tr>
+          <tr><td style="color:#888;padding:2px 0">Season</td><td>${d.season}</td></tr>
+          <tr><td style="color:#888;padding:2px 0">Risk Score</td><td><b style="color:${riskColor(d.risk_score)}">${d.risk_score}</b></td></tr>
+          <tr><td style="color:#888;padding:2px 0">Casualties</td><td>${d.human_casualties}</td></tr>
+        </table>
+      </div>
+    `);
+    markers.push(m);
+  });
+}
+
+function applyFilter(){
+  const sp=document.getElementById('map-species').value;
+  const se=document.getElementById('map-season').value;
+  let filtered=allData;
+  if(sp) filtered=filtered.filter(d=>d.animal_species===sp);
+  if(se) filtered=filtered.filter(d=>d.season===se);
+  renderMarkers(filtered);
+}
+
+// Load filters
+fetch('/api/filters').then(r=>r.json()).then(f=>{
+  const spSel=document.getElementById('map-species');
+  f.species.forEach(s=>{ const o=document.createElement('option'); o.value=o.textContent=s; spSel.appendChild(o); });
+  const seSel=document.getElementById('map-season');
+  f.seasons.forEach(s=>{ const o=document.createElement('option'); o.value=o.textContent=s; seSel.appendChild(o); });
+});
+
+// Load data
+fetch('/api/map_data?ts='+Date.now()).then(r=>r.json()).then(data=>{
+  allData=data;
+  renderMarkers(data);
+});
+</script>
+{% endblock %}

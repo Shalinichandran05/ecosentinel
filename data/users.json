@@ -1,0 +1,16 @@
+[
+  {
+    "username": "admin",
+    "password_hash": "scrypt:32768:8:1$VtXn92AT85gfl9kV$d3d281b1d3dfb4f92408fb785927b36aee7afdc61cbea907f71cde3be239e364b7a6d0abfc2ffa890a916828adc122824d0a05fefc9f2c90dc938f78a245d0ea",
+    "role": "admin",
+    "name": "System Admin",
+    "active": true
+  },
+  {
+    "username": "officer",
+    "password_hash": "scrypt:32768:8:1$HJP7COKzbHriSJNn$20041af09cf7f049199d3e3b9624f0bb3895a0185086f31db492b2e8871dc712549943d9f31acec32cc4b272c3b252840023c26cf7eb4b72a4cec7de13dd56fd",
+    "role": "officer",
+    "name": "Field Officer",
+    "active": true
+  }
+]

@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EcoSentinel - Human-Wildlife Conflict Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --surface: #101827;
+      --surface-2: #142134;
+      --line: #26364d;
+      --text: #e5edf7;
+      --muted: #a8b5c7;
+      --soft: #d4dde9;
+      --accent: #2dd4bf;
+      --accent-dark: #0f766e;
+      --danger: #ef4444;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: Inter, Arial, sans-serif;
+      min-height: 100vh;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .topline {
+      height: 4px;
+      background: linear-gradient(90deg, #2dd4bf, #38bdf8);
+    }
+
+    .navbar {
+      height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 64px;
+      background: rgba(11, 18, 32, .96);
+      border-bottom: 1px solid rgba(148, 163, 184, .18);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .identity {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .seal {
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(45, 212, 191, .65);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+      font-size: 20px;
+      font-weight: 800;
+      background: rgba(45, 212, 191, .08);
+    }
+
+    .identity-title {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: .2px;
+    }
+
+    .identity-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+    }
+
+    .nav a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .nav a:hover { color: var(--text); }
+
+    .login-button {
+      height: 38px;
+      padding: 0 18px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent);
+      color: #05201d !important;
+      font-weight: 800 !important;
+      border: 1px solid var(--accent);
+    }
+
+    .outline-button {
+      height: 38px;
+      padding: 0 18px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text) !important;
+      border: 1px solid rgba(148, 163, 184, .38);
+      background: rgba(255, 255, 255, .02);
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 64px));
+      margin: 0 auto;
+    }
+
+    .hero {
+      min-height: calc(100vh - 78px);
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+      gap: 72px;
+      align-items: center;
+      padding: 70px 0;
+    }
+
+    .classification {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: 44px;
+      line-height: 1.12;
+      letter-spacing: -.6px;
+      max-width: 820px;
+      margin-bottom: 22px;
+    }
+
+    .summary {
+      color: var(--soft);
+      font-size: 16px;
+      line-height: 1.85;
+      max-width: 820px;
+      margin-bottom: 32px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 42px;
+    }
+
+    .primary-action,
+    .secondary-action {
+      min-height: 42px;
+      padding: 0 20px;
+      border-radius: 6px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .primary-action {
+      background: var(--accent);
+      color: #05201d;
+      border: 1px solid var(--accent);
+    }
+
+    .secondary-action {
+      color: var(--text);
+      border: 1px solid rgba(148, 163, 184, .38);
+      background: rgba(255, 255, 255, .02);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0;
+      border-top: 1px solid rgba(148, 163, 184, .24);
+      border-bottom: 1px solid rgba(148, 163, 184, .24);
+    }
+
+    .stat {
+      padding: 18px 20px 18px 0;
+      border-right: 1px solid rgba(148, 163, 184, .18);
+      margin-right: 20px;
+    }
+
+    .stat:last-child {
+      border-right: none;
+      margin-right: 0;
+    }
+
+    .stat-value {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .stat-label {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .panel {
+      border: 1px solid rgba(148, 163, 184, .22);
+      background: linear-gradient(180deg, rgba(16, 24, 39, .96), rgba(20, 33, 52, .76));
+      padding: 32px;
+      border-radius: 10px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, .28);
+    }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 22px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid rgba(148, 163, 184, .2);
+    }
+
+    .process {
+      display: grid;
+      gap: 22px;
+      counter-reset: step;
+    }
+
+    .process-item {
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .process-item::before {
+      counter-increment: step;
+      content: counter(step);
+      width: 34px;
+      height: 34px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #05201d;
+      background: var(--accent);
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .process-heading {
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 5px;
+    }
+
+    .process-copy {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .section {
+      padding: 46px 0;
+      border-top: 1px solid rgba(148, 163, 184, .18);
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+
+    .section h2 {
+      font-size: 24px;
+      letter-spacing: -.2px;
+    }
+
+    .section-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+      max-width: 520px;
+    }
+
+    .module-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 28px;
+    }
+
+    .module {
+      padding-top: 18px;
+      border-top: 3px solid var(--accent);
+    }
+
+    .module h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .module p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.75;
+    }
+
+    .feature-list {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px 48px;
+      list-style: none;
+    }
+
+    .feature-list li {
+      color: var(--soft);
+      font-size: 13px;
+      line-height: 1.7;
+      border-bottom: 1px solid rgba(148, 163, 184, .14);
+      padding-bottom: 12px;
+    }
+
+    .footer {
+      color: var(--muted);
+      font-size: 12px;
+      border-top: 1px solid rgba(148, 163, 184, .18);
+      padding: 24px 0 36px;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 960px) {
+      .navbar { padding: 0 28px; }
+      .page { width: min(100% - 40px, 1180px); }
+      .hero { grid-template-columns: 1fr; gap: 40px; min-height: auto; }
+      h1 { font-size: 36px; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .module-grid { grid-template-columns: 1fr; }
+      .feature-list { grid-template-columns: 1fr; }
+      .section-heading { align-items: start; flex-direction: column; }
+    }
+
+    @media (max-width: 640px) {
+      .navbar {
+        height: auto;
+        padding: 18px 20px;
+        align-items: flex-start;
+        gap: 18px;
+      }
+
+      .nav {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .identity-subtitle { display: none; }
+      h1 { font-size: 30px; }
+      .summary { font-size: 14.5px; }
+      .stats { grid-template-columns: 1fr; }
+      .stat {
+        margin-right: 0;
+        border-right: none;
+        border-bottom: 1px solid rgba(148, 163, 184, .18);
+      }
+      .stat:last-child { border-bottom: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topline"></div>
+
+  <header class="navbar">
+    <div class="identity">
+      <img src="/static/images/ECOSentinel.png" alt="EcoSentinel Logo" style="width:42px; height:42px; border-radius:8px; object-fit:contain;">
+      <div>
+        <div class="identity-title">EcoSentinel</div>
+        <div class="identity-subtitle">Human-Wildlife Conflict Management System</div>
+      </div>
+    </div>
+
+    <nav class="nav" aria-label="Primary navigation">
+      <a href="#modules">Modules</a>
+      <a href="#capabilities">Capabilities</a>
+      {% if current_user %}
+        {% if current_user.role == 'admin' %}
+          <a class="login-button" href="/admin-dashboard">Admin Dashboard</a>
+        {% elif current_user.role == 'community' %}
+          <a class="login-button" href="/community-dashboard">Community Dashboard</a>
+        {% else %}
+          <a class="login-button" href="/officer-dashboard">Officer Dashboard</a>
+        {% endif %}
+        <a class="outline-button" href="/logout">Logout</a>
+      {% else %}
+        <a class="login-button" href="/login">Login</a>
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <div>
+        <div class="classification">Centralized data and decision support platform</div>
+        <h1>Integrated monitoring system for human-wildlife conflict management.</h1>
+        <p class="summary">
+          EcoSentinel is designed to help forest officials record incident data, verify field reports, classify conflict risk, identify recurring hotspots, and support patrol planning through structured analytics.
+        </p>
+
+        <div class="actions">
+          {% if current_user %}
+            <a class="primary-action" href="{% if current_user.role == 'admin' %}/admin-dashboard{% elif current_user.role == 'community' %}/community-dashboard{% else %}/officer-dashboard{% endif %}">Open System Dashboard</a>
+            <a class="secondary-action" href="/map">View Geographic Risk Map</a>
+          {% else %}
+            <a class="primary-action" href="/login">Login to Access System</a>
+            <a class="secondary-action" href="#modules">Read System Overview</a>
+          {% endif %}
+        </div>
+
+        <div class="stats" aria-label="Current system summary">
+          <div class="stat">
+            <div class="stat-value" id="k-incidents">-</div>
+            <div class="stat-label">Total incident records</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="k-districts">-</div>
+            <div class="stat-label">Districts represented</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="k-highrisk">-</div>
+            <div class="stat-label">High-risk incidents</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value" id="k-pending">-</div>
+            <div class="stat-label">Pending verification</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: center; padding: 60px 20px;">
+        <img src="/static/images/ECOSentinel-removebg-preview.png" alt="EcoSentinel Logo" style="max-width: 300px; max-height: 350px; object-fit: contain; filter: drop-shadow(0 0 40px rgba(45, 212, 191, 0.6)) drop-shadow(0 0 20px rgba(56, 189, 248, 0.4));">
+      </div>
+    </section>
+
+    <section class="section" id="modules">
+      <div class="section-heading">
+        <h2>System Modules</h2>
+        <p class="section-note">The system separates administrative control, field reporting, and analytical decision support while keeping all records in a centralized data store.</p>
+      </div>
+      <div class="module-grid">
+        <div class="module">
+          <h3>Admin Side</h3>
+          <p>Manage user accounts and system access, verify incident records, monitor overall conflict data, and use dashboards and reports for decision-making.</p>
+        </div>
+        <div class="module">
+          <h3>Officer / User Side</h3>
+          <p>Login securely, report new wildlife conflict incidents, enter location and damage details, and view recorded incidents with risk information.</p>
+        </div>
+        <div class="module">
+          <h3>System / BI Module</h3>
+          <p>Store incident data centrally, analyze conflict patterns, generate visual dashboards, and provide insights for preventive action.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="capabilities">
+      <div class="section-heading">
+        <h2>Core Capabilities</h2>
+        <p class="section-note">EcoSentinel converts incident records into a structured operational knowledge base for planning and review.</p>
+      </div>
+      <ul class="feature-list">
+        <li>Centralized storage of historical human-wildlife conflict records.</li>
+        <li>Risk categorization into Low, Medium, and High conflict zones.</li>
+        <li>Interactive visualizations for trends, species analysis, and hotspots.</li>
+        <li>Searchable records that preserve institutional knowledge.</li>
+        <li>Continuous updates as new field incidents are added.</li>
+        <li>Decision support for patrol planning and resource allocation.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="page footer">
+    <span>EcoSentinel - Human-Wildlife Conflict Management System</span>
+    <span>India-wide forest department use case</span>
+  </footer>
+
+  <script>
+    fetch('/api/summary').then(r=>r.json()).then(d=>{
+      document.getElementById('k-incidents').textContent = d.total_incidents;
+      document.getElementById('k-districts').textContent = d.districts_affected;
+      document.getElementById('k-highrisk').textContent = d.high_risk_incidents;
+      document.getElementById('k-pending').textContent = d.pending_verification;
+    });
+  </script>
+</body>
+</html>

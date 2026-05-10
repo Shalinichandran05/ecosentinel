@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+{% block title %}Officer Dashboard{% endblock %}
+{% block page_title %}Officer Dashboard{% endblock %}
+{% block content %}
+
+<div class="card" style="margin-bottom:24px;background:linear-gradient(135deg,#1e293b,#243044);border-color:#334155">
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+    <div>
+      <div style="font-size:16px;font-weight:700;color:#e2e8f0;margin-bottom:6px">Field response desk</div>
+      <div style="font-size:12.5px;color:#94a3b8;line-height:1.6">Use this view for incident intake, high-risk follow-up, and map-based response checks.</div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a href="/incidents" class="btn btn-primary">Log New Incident</a>
+      <a href="/bi" class="btn btn-outline">Open BI Analytics</a>
+      <a href="/map" class="btn btn-outline">Open Geo Map</a>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header">
+    <div class="card-title">BI Filters</div>
+    <span class="card-muted">Priority queue, KPIs, and charts update dynamically</span>
+  </div>
+  <div class="filter-bar" style="margin-bottom:0">
+    <select id="officer-species-filter" onchange="loadOfficerAnalytics()"><option value="">All Species</option></select>
+    <select id="officer-district-filter" onchange="loadOfficerAnalytics()"><option value="">All Districts</option></select>
+    <select id="officer-season-filter" onchange="loadOfficerAnalytics()"><option value="">All Seasons</option></select>
+    <select id="officer-risk-filter" onchange="loadOfficerAnalytics()"><option value="">All Risk</option></select>
+    <button class="btn btn-outline" onclick="resetOfficerFilters()">Reset</button>
+  </div>
+</div>
+
+<div class="kpi-grid" id="officer-kpis"></div>
+
+<style>
+  .patrol-list { display:grid; gap:12px; max-height:430px; overflow:auto; padding-right:4px; }
+  .patrol-card { background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; padding:14px; }
+  .patrol-topline { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px; }
+  .patrol-beat { font-size:13px; font-weight:700; color:var(--text-primary); line-height:1.35; }
+  .patrol-meta { font-size:11.5px; color:var(--text-muted); margin-top:2px; line-height:1.4; }
+  .patrol-action { color:var(--text-primary); font-size:12.5px; line-height:1.5; margin-bottom:10px; }
+  .patrol-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+  .patrol-stat { background:rgba(15,23,42,.55); border:1px solid rgba(51,65,85,.75); border-radius:8px; padding:8px; min-width:0; }
+  .patrol-stat span { display:block; font-size:10px; color:var(--text-muted); margin-bottom:3px; }
+  .patrol-stat strong { display:block; color:var(--text-primary); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .patrol-empty { color:var(--text-muted); text-align:center; padding:36px 12px; font-size:12.5px; }
+  .report-list { display:grid; gap:12px; max-height:360px; overflow:auto; padding-right:4px; }
+  .report-card { background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px; padding:14px; }
+  .report-head { display:flex; justify-content:space-between; gap:12px; margin-bottom:8px; }
+  .report-title { font-size:13px; font-weight:700; color:var(--text-primary); }
+  .report-meta { font-size:11.5px; color:var(--text-muted); margin-top:2px; line-height:1.4; }
+  .report-message { color:var(--text-primary); font-size:12.5px; line-height:1.55; margin:10px 0; }
+</style>
+
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header">
+    <div class="card-title">Community Incident Reports</div>
+    <span class="card-muted" id="community-report-count">Loading</span>
+  </div>
+  <div class="report-list" id="community-report-list">
+    <div class="patrol-empty">Loading community reports</div>
+  </div>
+</div>
+
+<div class="charts-grid charts-2" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Priority Response Queue</div>
+      <span class="card-muted" id="priority-count">Loading</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#ID</th><th>Date</th><th>District</th><th>Species</th><th>Risk</th><th>Response</th>
+          </tr>
+        </thead>
+        <tbody id="priority-body">
+          <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">Loading incidents</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Patrol Beat Plan</div>
+      <span class="card-muted" id="patrol-plan-count">Loading</span>
+    </div>
+    <div class="patrol-list" id="patrol-plan-list">
+      <div class="patrol-empty">Building patrol plan</div>
+    </div>
+  </div>
+</div>
+
+<div class="charts-grid charts-2">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Conflict Types</div>
+      <span class="card-muted">Common field calls</span>
+    </div>
+    <img id="officer-conflict" class="chart-img" src="" alt="Loading conflict type chart"/>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Risk Score Distribution</div>
+      <span class="card-muted">Escalation thresholds</span>
+    </div>
+    <img id="officer-risk" class="chart-img" src="" alt="Loading risk score chart"/>
+  </div>
+</div>
+
+<script>
+function riskClass(v){ return v>=20?'chip-danger':v>=10?'chip-warning':'chip-success'; }
+function priorityClass(v){ return v==='Immediate'?'chip-danger':v==='Scheduled'?'chip-warning':'chip-info'; }
+function formatDate(value){
+  if(!value) return '';
+  if(typeof value === 'string') return value.slice(0,10);
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0,10);
+}
+function incidentDate(row){
+  return formatDate(row.report_date) || formatDate(row.created_at);
+}
+function escapeHtml(v){
+  return String(v ?? '').replace(/[&<>"']/g, ch => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[ch]));
+}
+
+function fillSelect(id, opts){
+  const sel=document.getElementById(id);
+  opts.forEach(o=>{
+    const opt=document.createElement('option');
+    opt.value=o;
+    opt.textContent=o;
+    sel.appendChild(opt);
+  });
+}
+
+function officerParams(){
+  return new URLSearchParams({
+    species:document.getElementById('officer-species-filter').value,
+    district:document.getElementById('officer-district-filter').value,
+    season:document.getElementById('officer-season-filter').value,
+    risk:document.getElementById('officer-risk-filter').value,
+  });
+}
+
+function loadOfficerKpis(params){
+  fetch('/api/summary?'+params).then(r=>r.json()).then(d=>{
+  const defs=[
+    {label:'High-Risk Incidents', val:d.high_risk_incidents, sub:'Risk score >= 20', color:'#fb923c'},
+    {label:'Human Casualties', val:d.total_casualties, sub:'Immediate review', color:'#f87171'},
+    {label:'Livestock Lost', val:d.total_livestock, sub:'Compensation follow-up', color:'#fbbf24'},
+    {label:'Crop Damage', val:d.total_crop_ha+' ha', sub:'Field assessment', color:'#34d399'},
+  ];
+  document.getElementById('officer-kpis').innerHTML=defs.map(k=>`
+    <div class="kpi-card" style="--kpi-color:${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.val}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+});
+}
+
+function loadPriorityQueue(params){
+  const queueParams=new URLSearchParams(params);
+  queueParams.set('per_page','100');
+  fetch('/api/incidents?'+queueParams).then(r=>r.json()).then(d=>{
+  const priority=d.data
+    .filter(r=>Number(r.risk_score)>=20 || Number(r.human_casualties)>0)
+    .sort((a,b)=>Number(b.risk_score)-Number(a.risk_score))
+    .slice(0,8);
+  const tbody=document.getElementById('priority-body');
+  document.getElementById('priority-count').textContent=priority.length+' priority cases';
+  if(!priority.length){
+    tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">No priority cases found</td></tr>';
+    return;
+  }
+  tbody.innerHTML=priority.map(r=>`
+    <tr>
+      <td style="color:var(--text-muted)">${r.incident_id}</td>
+      <td>${incidentDate(r)}</td>
+      <td>${escapeHtml(r.district)}</td>
+      <td>${escapeHtml(r.animal_species)}</td>
+      <td><span class="chip ${riskClass(r.risk_score)}">${Number(r.risk_score).toFixed(1)}</span></td>
+      <td style="font-size:11px;color:var(--text-muted)">${escapeHtml(r.response_action)}</td>
+    </tr>`).join('');
+});
+}
+
+function loadPatrolPlan(params){
+  fetch('/api/patrol_plan?'+params).then(r=>r.json()).then(d=>{
+    const list=document.getElementById('patrol-plan-list');
+    const plan=d.plan || [];
+    document.getElementById('patrol-plan-count').textContent=plan.length+' ranked beats';
+    if(!plan.length){
+      list.innerHTML='<div class="patrol-empty">No patrol beats match these filters</div>';
+      return;
+    }
+    list.innerHTML=plan.map((p,i)=>`
+      <div class="patrol-card">
+        <div class="patrol-topline">
+          <div>
+            <div class="patrol-beat">${i+1}. ${escapeHtml(p.forest_beat)} &middot; ${escapeHtml(p.district)}</div>
+            <div class="patrol-meta">${escapeHtml(p.patrol_window)} &middot; latest report ${escapeHtml(p.latest_report)}</div>
+          </div>
+          <span class="chip ${priorityClass(p.priority)}">${escapeHtml(p.priority)}</span>
+        </div>
+        <div class="patrol-action">${escapeHtml(p.recommended_action)}</div>
+        <div class="patrol-stats">
+          <div class="patrol-stat"><span>Max Risk</span><strong>${Number(p.max_risk).toFixed(1)}</strong></div>
+          <div class="patrol-stat"><span>Species</span><strong>${escapeHtml(p.dominant_species)}</strong></div>
+          <div class="patrol-stat"><span>Conflict</span><strong>${escapeHtml(p.common_conflict)}</strong></div>
+          <div class="patrol-stat"><span>Incidents</span><strong>${p.incidents}</strong></div>
+          <div class="patrol-stat"><span>High Risk</span><strong>${p.high_risk}</strong></div>
+          <div class="patrol-stat"><span>Avg Risk</span><strong>${Number(p.avg_risk).toFixed(1)}</strong></div>
+        </div>
+      </div>`).join('');
+  });
+}
+
+function loadChart(endpoint, imgId, params){
+  fetch(endpoint+'?'+params).then(r=>r.json()).then(d=>{
+    document.getElementById(imgId).src='data:image/png;base64,'+d.img;
+  });
+}
+
+function loadCommunityReports(){
+  fetch('/api/community_reports').then(r=>r.json()).then(d=>{
+    const reports=d.reports || [];
+    const list=document.getElementById('community-report-list');
+    const newCount=reports.filter(r=>r.status==='New').length;
+    document.getElementById('community-report-count').textContent=`${newCount} new · ${reports.length} total`;
+    if(!reports.length){
+      list.innerHTML='<div class="patrol-empty">No community reports yet</div>';
+      return;
+    }
+    list.innerHTML=reports.slice(0,8).map(r=>`
+      <div class="report-card">
+        <div class="report-head">
+          <div>
+            <div class="report-title">${escapeHtml(r.place || r.district || 'Unspecified location')}</div>
+            <div class="report-meta">${escapeHtml(r.district)} · ${escapeHtml(r.state)} · ${escapeHtml(r.incident_date)}</div>
+            <div class="report-meta">From ${escapeHtml(r.reporter_name)} (${escapeHtml(r.reporter_email)})</div>
+          </div>
+          <span class="chip ${r.status==='New'?'chip-warning':'chip-success'}">${escapeHtml(r.status)}</span>
+        </div>
+        <div class="report-message">${escapeHtml(r.message)}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <span class="card-muted">Species: ${escapeHtml(r.animal_species || 'Unknown')}</span>
+          ${r.status==='New' ? `<button class="btn btn-outline" onclick="markCommunityReport(${r.id})">Mark Reviewed</button>` : ''}
+        </div>
+      </div>`).join('');
+  });
+}
+
+function markCommunityReport(id){
+  fetch('/api/community_reports/'+id+'/status',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({status:'Reviewed'})
+  }).then(r=>r.json()).then(()=>loadCommunityReports());
+}
+
+function loadOfficerAnalytics(){
+  const params=officerParams();
+  loadOfficerKpis(params);
+  loadPriorityQueue(params);
+  loadPatrolPlan(params);
+  loadChart('/api/charts/conflict_bar', 'officer-conflict', params);
+  loadChart('/api/charts/risk_histogram', 'officer-risk', params);
+  loadCommunityReports();
+}
+
+function resetOfficerFilters(){
+  ['officer-species-filter','officer-district-filter','officer-season-filter','officer-risk-filter'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+  loadOfficerAnalytics();
+}
+
+fetch('/api/filters').then(r=>r.json()).then(f=>{
+  fillSelect('officer-species-filter', f.species);
+  fillSelect('officer-district-filter', f.districts);
+  fillSelect('officer-season-filter', f.seasons);
+  fillSelect('officer-risk-filter', f.risk_categories);
+  loadOfficerAnalytics();
+});
+</script>
+{% endblock %}

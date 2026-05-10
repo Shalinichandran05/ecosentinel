@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EcoSentinel - Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --surface: #101827;
+      --surface-2: #142134;
+      --line: #26364d;
+      --text: #e5edf7;
+      --muted: #a8b5c7;
+      --soft: #d4dde9;
+      --accent: #2dd4bf;
+      --accent-dark: #0f766e;
+      --danger: #ef4444;
+      --success: #34d399;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: Inter, Arial, sans-serif;
+      color: var(--text);
+      background:
+        linear-gradient(135deg, rgba(45, 212, 191, .12), transparent 34%),
+        linear-gradient(315deg, rgba(56, 189, 248, .12), transparent 34%),
+        var(--bg);
+    }
+
+    .topline {
+      height: 4px;
+      background: linear-gradient(90deg, #2dd4bf, #38bdf8);
+    }
+
+    .navbar {
+      height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 64px;
+      background: rgba(11, 18, 32, .92);
+      border-bottom: 1px solid rgba(148, 163, 184, .18);
+    }
+
+    .identity {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .seal {
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(45, 212, 191, .65);
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+      font-size: 20px;
+      font-weight: 800;
+      background: rgba(45, 212, 191, .08);
+      flex: 0 0 auto;
+    }
+
+    .identity-title {
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: .2px;
+    }
+
+    .identity-subtitle {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+    }
+
+    .home-link {
+      height: 38px;
+      padding: 0 18px;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      border: 1px solid rgba(148, 163, 184, .38);
+      background: rgba(255, 255, 255, .02);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .page {
+      width: min(1080px, calc(100% - 64px));
+      min-height: calc(100vh - 78px);
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+      align-items: center;
+      gap: 72px;
+      padding: 56px 0;
+    }
+
+    .classification {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      max-width: 680px;
+      font-size: 42px;
+      line-height: 1.12;
+      letter-spacing: -.5px;
+      margin-bottom: 22px;
+    }
+
+    .summary {
+      max-width: 660px;
+      color: var(--soft);
+      font-size: 15.5px;
+      line-height: 1.85;
+      margin-bottom: 34px;
+    }
+
+    .security-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      border-top: 1px solid rgba(148, 163, 184, .24);
+      border-bottom: 1px solid rgba(148, 163, 184, .24);
+      max-width: 700px;
+    }
+
+    .security-item {
+      padding: 18px 18px 18px 0;
+      margin-right: 18px;
+      border-right: 1px solid rgba(148, 163, 184, .18);
+    }
+
+    .security-item:last-child {
+      margin-right: 0;
+      border-right: none;
+    }
+
+    .security-label {
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .security-copy {
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.6;
+    }
+
+    .login-panel {
+      border: 1px solid rgba(148, 163, 184, .24);
+      background: linear-gradient(180deg, rgba(16, 24, 39, .98), rgba(20, 33, 52, .86));
+      border-radius: 10px;
+      padding: 32px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, .28);
+    }
+
+    .panel-heading {
+      padding-bottom: 18px;
+      border-bottom: 1px solid rgba(148, 163, 184, .2);
+      margin-bottom: 22px;
+    }
+
+    .panel-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .panel-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .alert {
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      line-height: 1.5;
+    }
+
+    .alert-success {
+      background: rgba(52, 211, 153, .1);
+      border: 1px solid rgba(52, 211, 153, .34);
+      color: var(--success);
+    }
+
+    .alert-error {
+      background: rgba(239, 68, 68, .1);
+      border: 1px solid rgba(239, 68, 68, .34);
+      color: #fca5a5;
+    }
+
+    form {
+      display: grid;
+      gap: 16px;
+    }
+
+    label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 7px;
+    }
+
+    input {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid rgba(148, 163, 184, .28);
+      border-radius: 8px;
+      background: rgba(11, 18, 32, .72);
+      color: var(--text);
+      font: inherit;
+      font-size: 13px;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color .2s, background .2s;
+    }
+
+    input:focus {
+      border-color: var(--accent);
+      background: rgba(11, 18, 32, .96);
+    }
+
+    button {
+      min-height: 44px;
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      background: var(--accent);
+      color: #05201d;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+    }
+
+    button:hover {
+      background: #5eead4;
+      border-color: #5eead4;
+    }
+
+    @media (max-width: 960px) {
+      .navbar { padding: 0 28px; }
+      .page {
+        width: min(100% - 40px, 1080px);
+        grid-template-columns: 1fr;
+        gap: 38px;
+        min-height: auto;
+      }
+      h1 { font-size: 36px; }
+    }
+
+    @media (max-width: 640px) {
+      .navbar {
+        height: auto;
+        padding: 18px 20px;
+        gap: 18px;
+        align-items: flex-start;
+      }
+      .identity-subtitle { display: none; }
+      .home-link { padding: 0 14px; }
+      .page { width: min(100% - 32px, 1080px); padding: 38px 0; }
+      h1 { font-size: 30px; }
+      .summary { font-size: 14.5px; }
+      .security-grid { grid-template-columns: 1fr; }
+      .security-item {
+        margin-right: 0;
+        border-right: none;
+        border-bottom: 1px solid rgba(148, 163, 184, .18);
+      }
+      .security-item:last-child { border-bottom: none; }
+      .login-panel { padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topline"></div>
+
+  <header class="navbar">
+    <div class="identity">
+      <img src="/static/images/ECOSentinel.png" alt="EcoSentinel Logo" style="width:42px; height:42px; border-radius:8px; object-fit:contain; flex-shrink:0;">
+      <div>
+        <div class="identity-title">EcoSentinel</div>
+        <div class="identity-subtitle">Human-Wildlife Conflict Management System</div>
+      </div>
+    </div>
+    <a class="home-link" href="/">System Overview</a>
+  </header>
+
+  <main class="page">
+    <section>
+      <div class="classification">Authorized access</div>
+      <h1>Secure workspace for forest officers and system administrators.</h1>
+      <p class="summary">
+        Sign in to review verified records, submit field reports, track hotspot activity, and use conflict-risk analytics for operational planning.
+      </p>
+
+      <div class="security-grid" aria-label="Login access summary">
+        <div class="security-item">
+          <div class="security-label">Admin</div>
+          <div class="security-copy">User control, verification, dashboards, and system-wide review.</div>
+        </div>
+        <div class="security-item">
+          <div class="security-label">Officer</div>
+          <div class="security-copy">Incident reporting, field updates, maps, and risk information.</div>
+        </div>
+        <div class="security-item">
+          <div class="security-label">Live Data</div>
+          <div class="security-copy">Centralized records for trend analysis and patrol support.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="login-panel" aria-label="Login form">
+      <div class="panel-heading">
+        <div class="panel-title">Login</div>
+        <div class="panel-note">Use your assigned EcoSentinel credentials.</div>
+      </div>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert {% if category == 'error' %}alert-error{% else %}alert-success{% endif %}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="post">
+        <div>
+          <label for="username">Username</label>
+          <input id="username" type="text" name="username" placeholder="admin or officer" autocomplete="username" required/>
+        </div>
+        <div>
+          <label for="password">Password</label>
+          <input id="password" type="password" name="password" placeholder="Enter password" autocomplete="current-password" required/>
+        </div>
+        <button type="submit">Login to Dashboard</button>
+      </form>
+
+      <div style="margin-top:18px;padding-top:18px;border-top:1px solid rgba(148,163,184,.2);font-size:13px;color:var(--muted);line-height:1.6">
+        Public User? Access the Community dashboard.
+        <a href="/community-login" style="color:var(--accent);font-weight:800;text-decoration:none">Login/SignIn</a>
+      </div>
+
+    </section>
+  </main>
+</body>
+</html>

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block page_title %}User Accounts{% endblock %}
+{% block content %}
+
+<div class="charts-grid charts-2">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Create Account</div>
+      <span class="card-muted">Admin managed access</span>
+    </div>
+    <div id="user-alert"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Name</label>
+        <input id="name" type="text" placeholder="Forest Officer"/>
+      </div>
+      <div class="form-group">
+        <label>Username</label>
+        <input id="username" type="text" placeholder="officer2"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input id="password" type="password" placeholder="Temporary password"/>
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="role">
+          <option value="officer">Officer</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" style="margin-top:16px" onclick="addUser()">Create User</button>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">System Access</div>
+      <span class="card-muted" id="user-count">Loading</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody id="users-body">
+          <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px">Loading users</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function loadUsers(){
+  fetch('/api/users').then(r=>r.json()).then(d=>{
+    document.getElementById('user-count').textContent=d.users.length+' accounts';
+    document.getElementById('users-body').innerHTML=d.users.map(u=>`
+      <tr>
+        <td>${u.name || u.username}</td>
+        <td style="color:var(--text-muted)">${u.username}</td>
+        <td><span class="chip ${u.role==='admin'?'chip-info':'chip-success'}">${u.role}</span></td>
+        <td><span class="chip ${u.active?'chip-success':'chip-danger'}">${u.active?'Active':'Disabled'}</span></td>
+        <td><button class="page-btn" onclick="toggleUser('${u.username}')">${u.active?'Disable':'Enable'}</button></td>
+      </tr>`).join('');
+  });
+}
+
+function addUser(){
+  const payload={
+    name:document.getElementById('name').value,
+    username:document.getElementById('username').value,
+    password:document.getElementById('password').value,
+    role:document.getElementById('role').value,
+  };
+  fetch('/api/users/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r=>r.json()).then(d=>{
+      const alert=document.getElementById('user-alert');
+      if(d.success){
+        alert.innerHTML='<div class="alert alert-success">User created successfully.</div>';
+        document.getElementById('name').value='';
+        document.getElementById('username').value='';
+        document.getElementById('password').value='';
+        loadUsers();
+      } else {
+        alert.innerHTML='<div class="alert alert-error">'+d.error+'</div>';
+      }
+    });
+}
+
+function toggleUser(username){
+  fetch('/api/users/'+username+'/toggle',{method:'POST'}).then(r=>r.json()).then(loadUsers);
+}
+
+loadUsers();
+</script>
+{% endblock %}

@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% block title %}BI Analytics{% endblock %}
+{% block page_title %}Business Intelligence Module{% endblock %}
+{% block content %}
+
+<div class="card" style="margin-bottom:24px;background:linear-gradient(135deg,#1e293b,#1a2540);border-color:#334155;padding:20px 24px">
+  <div style="display:flex;align-items:center;gap:14px">
+    <div>
+      <div style="font-size:15px;font-weight:600;color:#e2e8f0;margin-bottom:4px">EcoSentinel BI Analytics</div>
+      <div style="font-size:12.5px;color:#94a3b8;line-height:1.6">
+        Filter-aware dashboards generated with Pandas, Matplotlib, and Seaborn. Use the controls below to update every chart and insight.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header">
+    <div class="card-title">Analytics Filters</div>
+    <span class="card-muted">Applied to all BI charts and insights</span>
+  </div>
+  <div class="filter-bar" style="margin-bottom:0">
+    <select id="bi-species-filter" onchange="loadBIAnalytics()"><option value="">All Species</option></select>
+    <select id="bi-district-filter" onchange="loadBIAnalytics()"><option value="">All Districts</option></select>
+    <select id="bi-season-filter" onchange="loadBIAnalytics()"><option value="">All Seasons</option></select>
+    <select id="bi-risk-filter" onchange="loadBIAnalytics()"><option value="">All Risk</option></select>
+    <select id="bi-status-filter" onchange="loadBIAnalytics()"><option value="">All Status</option></select>
+    <button class="btn btn-outline" onclick="resetBIFilters()">Reset</button>
+  </div>
+</div>
+
+<div class="charts-grid charts-2" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Species Distribution</div>
+      <span class="card-muted">Ranked bar chart</span>
+    </div>
+    <div id="wrap-species" style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">Generating chart...</div>
+    <img id="c1" class="chart-img" style="display:none"/>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Conflict Type Breakdown</div>
+      <span class="card-muted">Horizontal bar</span>
+    </div>
+    <div id="wrap-conflict" style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">Generating chart...</div>
+    <img id="c2" class="chart-img" style="display:none"/>
+  </div>
+</div>
+
+<div class="charts-grid charts-2" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Seasonal Average Risk</div>
+      <span class="card-muted">Filtered risk score</span>
+    </div>
+    <div id="wrap-season" style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">Generating chart...</div>
+    <img id="c3" class="chart-img" style="display:none"/>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Risk Score Distribution</div>
+      <span class="card-muted">Thresholded bins</span>
+    </div>
+    <div id="wrap-risk" style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">Generating chart...</div>
+    <img id="c4" class="chart-img" style="display:none"/>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header">
+    <div class="card-title">Monthly Incident Trend</div>
+    <span class="card-muted">Filtered timeline</span>
+  </div>
+  <div id="wrap-trend" style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">Generating chart...</div>
+  <img id="c5" class="chart-img" style="display:none"/>
+</div>
+
+<div class="charts-grid charts-2" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Top 10 Hotspot Districts</div>
+      <span class="card-muted">Filtered count</span>
+    </div>
+    <div id="wrap-top" style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">Generating chart...</div>
+    <img id="c6" class="chart-img" style="display:none"/>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Response Action Distribution</div>
+      <span class="card-muted">Filtered response actions</span>
+    </div>
+    <div id="wrap-response" style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">Generating chart...</div>
+    <img id="c7" class="chart-img" style="display:none"/>
+  </div>
+</div>
+
+<div class="charts-grid charts-2">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Species x Conflict Heatmap</div>
+      <span class="card-muted">Filtered pivot table</span>
+    </div>
+    <div id="wrap-heatmap" style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">Generating chart...</div>
+    <img id="c8" class="chart-img" style="display:none"/>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Damage Comparison by Species</div>
+      <span class="card-muted">Casualties, livestock, crop</span>
+    </div>
+    <div id="wrap-damage" style="text-align:center;padding:20px;color:var(--text-muted);font-size:12px">Generating chart...</div>
+    <img id="c9" class="chart-img" style="display:none"/>
+  </div>
+</div>
+
+<div class="card" style="margin-top:20px">
+  <div class="card-header"><div class="card-title">Key Insights</div></div>
+  <div id="insights" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px">
+    <div style="text-align:center;color:var(--text-muted);font-size:12px;padding:10px">Loading insights...</div>
+  </div>
+</div>
+
+<script>
+const charts=[
+  {ep:'/api/charts/species_donut', id:'c1', wrap:'wrap-species'},
+  {ep:'/api/charts/conflict_bar', id:'c2', wrap:'wrap-conflict'},
+  {ep:'/api/charts/season_risk', id:'c3', wrap:'wrap-season'},
+  {ep:'/api/charts/risk_histogram', id:'c4', wrap:'wrap-risk'},
+  {ep:'/api/charts/monthly_trend', id:'c5', wrap:'wrap-trend'},
+  {ep:'/api/charts/top_districts', id:'c6', wrap:'wrap-top'},
+  {ep:'/api/charts/response_pie', id:'c7', wrap:'wrap-response'},
+  {ep:'/api/charts/species_conflict_heatmap', id:'c8', wrap:'wrap-heatmap'},
+  {ep:'/api/charts/damage_comparison', id:'c9', wrap:'wrap-damage'},
+];
+
+function fillSelect(id, opts){
+  const sel=document.getElementById(id);
+  opts.forEach(o=>{
+    const opt=document.createElement('option');
+    opt.value=o;
+    opt.textContent=o;
+    sel.appendChild(opt);
+  });
+}
+
+function biParams(){
+  return new URLSearchParams({
+    species:document.getElementById('bi-species-filter').value,
+    district:document.getElementById('bi-district-filter').value,
+    season:document.getElementById('bi-season-filter').value,
+    risk:document.getElementById('bi-risk-filter').value,
+    status:document.getElementById('bi-status-filter').value,
+  });
+}
+
+function loadCharts(params){
+  charts.forEach(c=>{
+    const img=document.getElementById(c.id);
+    const wrap=document.getElementById(c.wrap);
+    img.style.display='none';
+    wrap.style.display='block';
+    wrap.textContent='Generating chart...';
+    fetch(c.ep+'?'+params).then(r=>r.json()).then(d=>{
+      img.src='data:image/png;base64,'+d.img;
+      img.style.display='block';
+      wrap.style.display='none';
+    }).catch(()=>{
+      wrap.textContent='Failed to load chart.';
+    });
+  });
+}
+
+function loadInsights(params){
+  fetch('/api/summary?'+params).then(r=>r.json()).then(d=>{
+    const total=d.total_incidents || 0;
+    const highRiskShare=total ? (d.high_risk_incidents/total*100).toFixed(1) : '0.0';
+    const insights=[
+      {label:'Records', text:`${total} incidents match the current filter selection.`},
+      {label:'Scope', text:`${d.districts_affected} districts are represented in the filtered result set.`},
+      {label:'Risk', text:`${d.high_risk_incidents} incidents are High Risk, representing ${highRiskShare}% of the filtered records.`},
+      {label:'Review', text:`${d.pending_verification} incidents are still pending admin verification.`},
+      {label:'Damage', text:`Filtered crop damage totals ${d.total_crop_ha} ha, with ${d.total_livestock} livestock losses recorded.`},
+      {label:'Planning', text:`Average risk score for the filtered selection is ${d.avg_risk_score}.`},
+    ];
+    document.getElementById('insights').innerHTML=insights.map(i=>`
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;gap:12px;align-items:flex-start">
+        <span class="chip chip-info">${i.label}</span>
+        <span style="font-size:12.5px;color:var(--text-muted);line-height:1.6">${i.text}</span>
+      </div>`).join('');
+  });
+}
+
+function loadBIAnalytics(){
+  const params=biParams();
+  loadCharts(params);
+  loadInsights(params);
+}
+
+function resetBIFilters(){
+  ['bi-species-filter','bi-district-filter','bi-season-filter','bi-risk-filter','bi-status-filter'].forEach(id=>{
+    document.getElementById(id).value='';
+  });
+  loadBIAnalytics();
+}
+
+fetch('/api/filters').then(r=>r.json()).then(f=>{
+  fillSelect('bi-species-filter', f.species);
+  fillSelect('bi-district-filter', f.districts);
+  fillSelect('bi-season-filter', f.seasons);
+  fillSelect('bi-risk-filter', f.risk_categories);
+  fillSelect('bi-status-filter', f.verification_statuses);
+  loadBIAnalytics();
+});
+</script>
+{% endblock %}

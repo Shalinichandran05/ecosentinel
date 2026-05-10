@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}📊 Operational Dashboard{% endblock %}
+{% block content %}
+
+<!-- KPIs -->
+<div class="kpi-grid" id="kpis"></div>
+
+<!-- Top row charts -->
+<div class="charts-grid charts-2" style="margin-bottom:20px">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🐘 Species Distribution</div>
+      <span class="card-muted">Ranked bar chart</span>
+    </div>
+    <img id="c-species" class="chart-img" src="" alt="loading…"/>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">⚔️ Conflict Types</div>
+      <span class="card-muted">Horizontal bar</span>
+    </div>
+    <img id="c-conflict" class="chart-img" src="" alt="loading…"/>
+  </div>
+</div>
+
+<!-- Trend -->
+<div class="card" style="margin-bottom:20px">
+  <div class="card-header">
+    <div class="card-title">📈 Monthly Incident Trend</div>
+    <span class="card-muted">2022 – 2025</span>
+  </div>
+  <img id="c-trend" class="chart-img" src="" alt="loading…"/>
+</div>
+
+<!-- Bottom row -->
+<div class="charts-grid charts-2">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🏙️ Top 10 Districts</div>
+      <span class="card-muted">Incident count</span>
+    </div>
+    <img id="c-districts" class="chart-img" src="" alt="loading…"/>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🌦️ Seasonal Risk Scores</div>
+      <span class="card-muted">Average risk</span>
+    </div>
+    <img id="c-season" class="chart-img" src="" alt="loading…"/>
+  </div>
+</div>
+
+<script>
+const kpiData = {};
+fetch('/api/summary').then(r=>r.json()).then(d=>{
+  const defs=[
+    {id:'k1',label:'Total Incidents',   val:d.total_incidents,   sub:'Recorded',       color:'#22d3ee', icon:'📌'},
+    {id:'k2',label:'Human Casualties',  val:d.total_casualties,  sub:'People harmed',  color:'#f87171', icon:'🚨'},
+    {id:'k3',label:'Livestock Lost',    val:d.total_livestock,   sub:'Animals',        color:'#fbbf24', icon:'🐄'},
+    {id:'k4',label:'Crop Damage',       val:d.total_crop_ha+' ha',sub:'Hectares',      color:'#34d399', icon:'🌾'},
+    {id:'k5',label:'Avg Risk Score',    val:d.avg_risk_score,    sub:'Out of 25',      color:'#818cf8', icon:'⚠️'},
+    {id:'k6',label:'High-Risk',         val:d.high_risk_incidents,sub:'Score ≥ 20',    color:'#fb923c', icon:'🔥'},
+  ];
+  const grid=document.getElementById('kpis');
+  grid.innerHTML=defs.map(k=>`
+    <div class="kpi-card" style="--kpi-color:${k.color}">
+      <span class="kpi-icon">${k.icon}</span>
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.val}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+});
+
+function loadChart(endpoint, imgId){
+  fetch(endpoint).then(r=>r.json()).then(d=>{
+    document.getElementById(imgId).src='data:image/png;base64,'+d.img;
+  });
+}
+loadChart('/api/charts/species_donut',  'c-species');
+loadChart('/api/charts/conflict_bar',   'c-conflict');
+loadChart('/api/charts/monthly_trend',  'c-trend');
+loadChart('/api/charts/top_districts',  'c-districts');
+loadChart('/api/charts/season_risk',    'c-season');
+</script>
+{% endblock %}

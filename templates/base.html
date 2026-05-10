@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EcoSentinel – {% block title %}{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg-primary:   #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card:      #243044;
+      --border:       #334155;
+      --text-primary: #e2e8f0;
+      --text-muted:   #94a3b8;
+      --accent:       #22d3ee;
+      --accent2:      #6366f1;
+      --success:      #34d399;
+      --warning:      #fbbf24;
+      --danger:       #f87171;
+      --sidebar-w:    240px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin:0; padding:0; }
+    body { font-family:'Inter',sans-serif; background:var(--bg-primary); color:var(--text-primary); display:flex; min-height:100vh; }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: var(--sidebar-w); background:var(--bg-secondary); border-right:1px solid var(--border);
+      display:flex; flex-direction:column; position:fixed; top:0; left:0; height:100vh; z-index:100;
+    }
+    .sidebar-logo {
+      padding:24px 20px 20px; border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:12px;
+    }
+    .logo-icon { width:36px; height:36px; background:linear-gradient(135deg,#22d3ee,#6366f1);
+      border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+    .logo-text { font-size:16px; font-weight:700; color:var(--accent); letter-spacing:0.5px; }
+    .logo-sub  { font-size:10px; color:var(--text-muted); margin-top:1px; }
+
+    .sidebar-nav { flex:1; padding:16px 12px; overflow-y:auto; }
+    .nav-section { font-size:10px; font-weight:600; color:var(--text-muted); letter-spacing:1px;
+      text-transform:uppercase; padding:10px 8px 6px; }
+    .nav-item a {
+      display:flex; align-items:center; gap:10px; padding:9px 12px; border-radius:8px;
+      color:var(--text-muted); text-decoration:none; font-size:13.5px; font-weight:500;
+      transition:all .2s; margin-bottom:2px;
+    }
+    .nav-item a:hover, .nav-item a.active {
+      background:rgba(34,211,238,.1); color:var(--accent); }
+    .nav-item a .icon { font-size:16px; width:20px; text-align:center; }
+
+    .sidebar-footer {
+      padding:16px 20px; border-top:1px solid var(--border); font-size:11px; color:var(--text-muted);
+      display:flex; flex-direction:column; gap:7px;
+    }
+    .sidebar-footer-user { line-height:1.4; }
+    .sidebar-footer a {
+      color:var(--accent); text-decoration:none; font-weight:600; width:max-content; line-height:1.2;
+    }
+    .sidebar-footer a:hover { color:#67e8f9; }
+    .sidebar-status { display:flex; align-items:center; gap:6px; line-height:1.2; }
+    .status-dot { display:inline-block; width:7px; height:7px; background:var(--success);
+      border-radius:50%; animation:pulse 2s infinite; flex:0 0 auto; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* ── Main ── */
+    #main { margin-left:var(--sidebar-w); flex:1; display:flex; flex-direction:column; min-height:100vh; }
+
+    .topbar {
+      background:var(--bg-secondary); border-bottom:1px solid var(--border);
+      padding:14px 28px; display:flex; align-items:center; justify-content:space-between;
+      position:sticky; top:0; z-index:50;
+    }
+    .topbar-title { font-size:16px; font-weight:600; color:var(--text-primary); }
+    .topbar-right { display:flex; align-items:center; gap:16px; }
+    .badge { background:rgba(34,211,238,.15); color:var(--accent); font-size:11px;
+      padding:3px 10px; border-radius:20px; font-weight:600; border:1px solid rgba(34,211,238,.3); }
+
+    .content { padding:28px; flex:1; }
+
+    /* ── Cards ── */
+    .card {
+      background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
+      padding:20px; margin-bottom:20px;
+    }
+    .card-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .card-title { font-size:14px; font-weight:600; color:var(--text-primary); }
+    .card-muted  { font-size:12px; color:var(--text-muted); }
+
+    /* ── KPI grid ── */
+    .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin-bottom:24px; }
+    .kpi-card {
+      background:var(--bg-card); border:1px solid var(--border); border-radius:12px;
+      padding:18px 20px; position:relative; overflow:hidden;
+    }
+    .kpi-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px;
+      background:var(--kpi-color, var(--accent));
+    }
+    .kpi-label { font-size:11px; color:var(--text-muted); font-weight:500; text-transform:uppercase; letter-spacing:.5px; }
+    .kpi-value { font-size:28px; font-weight:700; color:var(--kpi-color,var(--accent)); margin:6px 0 2px; line-height:1; }
+    .kpi-sub   { font-size:11px; color:var(--text-muted); }
+    .kpi-icon  { position:absolute; top:14px; right:16px; font-size:22px; opacity:.4; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; font-size:12.5px; }
+    th { background:var(--bg-secondary); color:var(--text-muted); font-weight:600; font-size:11px;
+      text-transform:uppercase; letter-spacing:.5px; padding:10px 14px; text-align:left;
+      border-bottom:1px solid var(--border); }
+    td { padding:10px 14px; border-bottom:1px solid rgba(51,65,85,.5); color:var(--text-primary); }
+    tr:hover td { background:rgba(255,255,255,.02); }
+    .chip {
+      display:inline-block; padding:2px 10px; border-radius:20px; font-size:11px; font-weight:500;
+    }
+    .chip-danger   { background:rgba(248,113,113,.15); color:#f87171; border:1px solid rgba(248,113,113,.3); }
+    .chip-warning  { background:rgba(251,191,36,.15);  color:#fbbf24; border:1px solid rgba(251,191,36,.3); }
+    .chip-success  { background:rgba(52,211,153,.15);  color:#34d399; border:1px solid rgba(52,211,153,.3); }
+    .chip-info     { background:rgba(34,211,238,.15);  color:#22d3ee; border:1px solid rgba(34,211,238,.3); }
+    .chip-purple   { background:rgba(99,102,241,.15);  color:#818cf8; border:1px solid rgba(99,102,241,.3); }
+
+    /* ── Buttons ── */
+    .btn { padding:8px 18px; border-radius:8px; font-size:13px; font-weight:500; border:none; cursor:pointer; transition:all .2s; }
+    .btn-primary { background:var(--accent); color:#0f172a; }
+    .btn-primary:hover { background:#67e8f9; }
+    .btn-outline { background:transparent; color:var(--text-muted); border:1px solid var(--border); }
+    .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
+
+    /* ── Forms ── */
+    .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px; }
+    .form-group { display:flex; flex-direction:column; gap:6px; }
+    .form-group label { font-size:12px; color:var(--text-muted); font-weight:500; }
+    .form-group input, .form-group select, .form-group textarea {
+      background:var(--bg-secondary); border:1px solid var(--border); border-radius:8px;
+      padding:9px 12px; color:var(--text-primary); font-size:13px; font-family:inherit;
+      transition:border .2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline:none; border-color:var(--accent);
+    }
+    .form-group select option { background:var(--bg-secondary); }
+
+    /* ── Charts grid ── */
+    .charts-grid { display:grid; gap:20px; }
+    .charts-2 { grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); }
+    .charts-3 { grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
+    .chart-img { width:100%; border-radius:8px; }
+
+    /* ── Pagination ── */
+    .pagination { display:flex; gap:8px; align-items:center; margin-top:16px; }
+    .page-btn {
+      background:var(--bg-secondary); border:1px solid var(--border); color:var(--text-muted);
+      padding:6px 12px; border-radius:6px; font-size:12px; cursor:pointer; transition:all .2s;
+    }
+    .page-btn:hover, .page-btn.active { border-color:var(--accent); color:var(--accent); }
+
+    /* ── Filter bar ── */
+    .filter-bar { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+    .filter-bar select { background:var(--bg-card); border:1px solid var(--border); color:var(--text-muted);
+      padding:7px 12px; border-radius:8px; font-size:12.5px; cursor:pointer; }
+    .filter-bar select:focus { outline:none; border-color:var(--accent); }
+
+    /* ── Map ── */
+    #map { height:500px; border-radius:12px; border:1px solid var(--border); }
+
+    /* ── Alerts ── */
+    .alert { padding:12px 16px; border-radius:8px; font-size:13px; margin-bottom:12px; }
+    .alert-success { background:rgba(52,211,153,.1); border:1px solid rgba(52,211,153,.3); color:#34d399; }
+    .alert-error   { background:rgba(248,113,113,.1); border:1px solid rgba(248,113,113,.3); color:#f87171; }
+  </style>
+</head>
+<body>
+<!-- ── Sidebar ── -->
+<aside id="sidebar">
+  <div class="sidebar-logo">
+    <img src="/static/images/ECOSentinel.png" alt="EcoSentinel Logo" style="width:36px; height:36px; border-radius:10px; object-fit:contain; flex-shrink:0;">
+    <div>
+      <div class="logo-text">EcoSentinel</div>
+      <div class="logo-sub">Wildlife Conflict Mgmt</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-section">Main</div>
+    <div class="nav-item"><a href="/" class="{% if request.path=='/' %}active{% endif %}"><span class="icon">🏠</span>Home</a></div>
+    {% if current_user %}
+    {% if current_user.role == 'admin' %}
+    <div class="nav-item"><a href="/admin-dashboard" class="{% if request.path in ['/dashboard','/admin-dashboard'] %}active{% endif %}"><span class="icon">📊</span>Admin Dashboard</a></div>
+    {% endif %}
+    {% if current_user.role == 'officer' %}
+    <div class="nav-item"><a href="/officer-dashboard" class="{% if request.path=='/officer-dashboard' %}active{% endif %}"><span class="icon">🛡️</span>Officer Dashboard</a></div>
+    {% endif %}
+    {% if current_user.role == 'community' %}
+    <div class="nav-item"><a href="/community-dashboard" class="{% if request.path=='/community-dashboard' %}active{% endif %}"><span class="icon">🌐</span>Community Dashboard</a></div>
+    {% endif %}
+    <div class="nav-section">Management</div>
+    <div class="nav-item"><a href="/incidents" class="{% if request.path=='/incidents' %}active{% endif %}"><span class="icon">📋</span>Incidents</a></div>
+    {% if current_user.role == 'community' %}
+    <div class="nav-item"><a href="/community-report" class="{% if request.path=='/community-report' %}active{% endif %}"><span class="icon">✉️</span>Report Incident</a></div>
+    {% endif %}
+    {% if current_user.role == 'admin' %}
+    <div class="nav-item"><a href="/admin/incidents" class="{% if request.path=='/admin/incidents' %}active{% endif %}"><span class="icon">✅</span>Verification</a></div>
+    <div class="nav-item"><a href="/admin/users" class="{% if request.path=='/admin/users' %}active{% endif %}"><span class="icon">👥</span>Users</a></div>
+    {% endif %}
+    <div class="nav-item"><a href="/map" class="{% if request.path=='/map' %}active{% endif %}"><span class="icon">🗺️</span>Geo Map</a></div>
+    <div class="nav-section">Analytics</div>
+    <div class="nav-item"><a href="/bi" class="{% if request.path=='/bi' %}active{% endif %}"><span class="icon">🧠</span>BI Module</a></div>
+    {% else %}
+    <div class="nav-item"><a href="/login" class="{% if request.path=='/login' %}active{% endif %}"><span class="icon">🔐</span>Login</a></div>
+    {% endif %}
+  </nav>
+  <div class="sidebar-footer">
+    {% if current_user %}
+    <div class="sidebar-footer-user">{{ current_user.name }} · {{ current_user.role|title }}</div>
+    <a href="/logout">Logout</a>
+    {% endif %}
+    <div class="sidebar-status"><span class="status-dot"></span>System Online · India</div>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<div id="main">
+  <div class="topbar">
+    <div class="topbar-title">{% block page_title %}{% endblock %}</div>
+    <div class="topbar-right">
+      <span class="badge">India Forest Department</span>
+      <span style="font-size:12px;color:var(--text-muted)" id="clock"></span>
+    </div>
+  </div>
+  <div class="content">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert {% if category == 'error' %}alert-error{% else %}alert-success{% endif %}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</div>
+
+<script>
+  function tick(){
+    const d=new Date();
+    document.getElementById('clock').textContent=d.toLocaleTimeString('en-IN',{hour12:true});
+  }
+  tick(); setInterval(tick,1000);
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

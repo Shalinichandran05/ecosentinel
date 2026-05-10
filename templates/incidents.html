@@ -1,0 +1,262 @@
+{% extends "base.html" %}
+{% block title %}Incidents{% endblock %}
+{% block page_title %}📋 Incident Management{% endblock %}
+{% block content %}
+
+{% if current_user.role in ['admin', 'officer'] %}
+<!-- Add incident form -->
+<div class="card" style="margin-bottom:24px">
+  <div class="card-header">
+    <div class="card-title">➕ Log New Incident</div>
+    <button class="btn btn-outline" onclick="toggleForm()">Toggle Form</button>
+  </div>
+  <div id="incident-form" style="display:none">
+    <div id="form-alert"></div>
+    <div class="form-grid" id="the-form">
+      <div class="form-group">
+        <label>Report Date</label>
+        <input type="date" id="f-date" value="2025-01-01"/>
+      </div>
+      <div class="form-group">
+        <label>District</label>
+        <select id="f-district"></select>
+      </div>
+      <div class="form-group">
+        <label>Place / Forest Area</label>
+        <select id="f-beat" onchange="applyLocationDetails()"></select>
+      </div>
+      <div class="form-group">
+        <label>Animal Species</label>
+        <select id="f-species"></select>
+      </div>
+      <div class="form-group">
+        <label>Conflict Type</label>
+        <select id="f-conflict"></select>
+      </div>
+      <div class="form-group">
+        <label>Season</label>
+        <select id="f-season"></select>
+      </div>
+      <div class="form-group">
+        <label>Risk Score (0–25)</label>
+        <input type="number" id="f-risk" min="0" max="25" step="0.1" value="10"/>
+      </div>
+      <div class="form-group">
+        <label>Response Action</label>
+        <select id="f-action">
+          <option>Patrol Increased</option>
+          <option>Animal Relocated</option>
+          <option>Awareness Campaign</option>
+          <option>Compensation Provided</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Human Casualties</label>
+        <input type="number" id="f-casualties" value="0" min="0"/>
+      </div>
+      <div class="form-group">
+        <label>Livestock Loss</label>
+        <input type="number" id="f-livestock" value="0" min="0"/>
+      </div>
+      <div class="form-group">
+        <label>Crop Damage (ha)</label>
+        <input type="number" id="f-crop" value="0" min="0" step="0.01"/>
+      </div>
+      <div class="form-group">
+        <label>Latitude</label>
+        <input type="number" id="f-lat" value="11.0" step="0.0001"/>
+      </div>
+      <div class="form-group">
+        <label>Longitude</label>
+        <input type="number" id="f-lon" value="78.0" step="0.0001"/>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Officer Notes</label>
+        <textarea id="f-notes" rows="2" placeholder="Optional notes…"></textarea>
+      </div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px">
+      <button class="btn btn-primary" onclick="submitIncident()">💾 Save Incident</button>
+      <button class="btn btn-outline" onclick="toggleForm()">Cancel</button>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="card" style="margin-bottom:24px">
+  <div class="card-header">
+    <div class="card-title">Incident Records</div>
+    <span class="card-muted">Community read-only view</span>
+  </div>
+  <div style="font-size:12.5px;color:var(--text-muted);line-height:1.6">
+    You can view verified system records here. To share a new field observation, use the community report page.
+  </div>
+</div>
+{% endif %}
+
+<!-- Filter bar -->
+<div class="filter-bar">
+  <input id="fil-query" type="text" placeholder="Search history..." oninput="loadTable(1)"
+         style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);padding:7px 12px;border-radius:8px;font-size:12.5px;min-width:220px"/>
+  <select id="fil-species" onchange="loadTable(1)"><option value="">All Species</option></select>
+  <select id="fil-district" onchange="loadTable(1)"><option value="">All Districts</option></select>
+  <select id="fil-season"   onchange="loadTable(1)"><option value="">All Seasons</option></select>
+  <select id="fil-risk"     onchange="loadTable(1)"><option value="">All Risk</option></select>
+  <span style="font-size:12px;color:var(--text-muted);align-self:center" id="total-count"></span>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#ID</th><th>Date</th><th>District</th><th>Species</th>
+          <th>Conflict</th><th>Season</th><th>Risk</th>
+          <th>Status</th><th>Casualties</th><th>Response</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:30px">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<script>
+let currentPage=1;
+const perPage=12;
+let knownLocations=[];
+const formatDate = value => {
+  if (!value) return '';
+  if (typeof value === 'string') return value.slice(0, 10);
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+};
+const incidentDate = row => formatDate(row.report_date) || formatDate(row.created_at);
+
+fetch('/api/filters').then(r=>r.json()).then(f=>{
+  knownLocations=f.locations || [];
+  const locationNameCounts=knownLocations.reduce((acc,l)=>{acc[l.name]=(acc[l.name]||0)+1; return acc;}, {});
+  fillSelect('fil-species',   f.species);
+  fillSelect('fil-district',  f.districts);
+  fillSelect('fil-season',    f.seasons);
+  fillSelect('fil-risk',      f.risk_categories);
+  fillSelect('f-district',    f.districts, false);
+  fillLocationSelect(locationNameCounts);
+  fillSelect('f-species',     f.species,   false);
+  fillSelect('f-conflict',    f.conflict_types, false);
+  fillSelect('f-season',      f.seasons,   false);
+  applyLocationDetails();
+});
+
+function fillSelect(id, opts, withAll=true){
+  const sel=document.getElementById(id);
+  if(!sel) return;
+  opts.forEach(o=>{ const opt=document.createElement('option'); opt.value=o; opt.textContent=o; sel.appendChild(opt); });
+}
+
+function fillLocationSelect(nameCounts){
+  const sel=document.getElementById('f-beat');
+  if(!sel) return;
+  knownLocations.forEach((location,index)=>{
+    const opt=document.createElement('option');
+    opt.value=String(index);
+    opt.textContent=nameCounts[location.name]>1 ? `${location.name} (${location.district}, ${location.state})` : `${location.name} (${location.state})`;
+    sel.appendChild(opt);
+  });
+}
+
+function loadTable(page=1){
+  currentPage=page;
+  const sp=document.getElementById('fil-species').value;
+  const di=document.getElementById('fil-district').value;
+  const se=document.getElementById('fil-season').value;
+  const ri=document.getElementById('fil-risk').value;
+  const q=document.getElementById('fil-query').value;
+  const params=new URLSearchParams({page,per_page:perPage,species:sp,district:di,season:se,risk:ri,q:q});
+  fetch('/api/incidents?'+params).then(r=>r.json()).then(d=>{
+    document.getElementById('total-count').textContent=`${d.total} incidents found`;
+    const RISK_COLOR = v => v>=20?'chip-danger':v>=10?'chip-warning':'chip-success';
+    const STATUS_COLOR = v => v==='Verified'?'chip-success':v==='Rejected'?'chip-danger':'chip-warning';
+    const SPECIES_COLOR = s => ({Elephant:'chip-info',Leopard:'chip-danger','Wild Boar':'chip-warning',Monkey:'chip-purple',Tiger:'chip-warning',Gaur:'chip-success','Sloth Bear':'chip-warning','Black Bear':'chip-info',Hyena:'chip-warning',Rhinoceros:'chip-success','Wild Buffalo':'chip-info'}[s]||'chip-info');
+    const tbody=document.getElementById('table-body');
+    if(!d.data.length){
+      tbody.innerHTML='<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:30px">No incidents found</td></tr>';
+      return;
+    }
+    tbody.innerHTML=d.data.map(r=>`
+      <tr>
+        <td style="color:var(--text-muted)">${r.incident_id}</td>
+        <td>${incidentDate(r)}</td>
+        <td>${r.district}</td>
+        <td><span class="chip ${SPECIES_COLOR(r.animal_species)}">${r.animal_species}</span></td>
+        <td style="font-size:12px">${r.conflict_type}</td>
+        <td style="font-size:12px">${r.season}</td>
+        <td><span class="chip ${RISK_COLOR(r.risk_score)}">${r.risk_category} (${r.risk_score.toFixed(1)})</span></td>
+        <td><span class="chip ${STATUS_COLOR(r.verification_status)}">${r.verification_status}</span></td>
+        <td style="text-align:center">${r.human_casualties}</td>
+        <td style="font-size:11px;color:var(--text-muted)">${r.response_action}</td>
+      </tr>`).join('');
+    buildPagination(d.total, page);
+  });
+}
+
+function buildPagination(total, page){
+  const pages=Math.ceil(total/perPage);
+  let html='';
+  if(page>1) html+=`<button class="page-btn" onclick="loadTable(${page-1})">‹ Prev</button>`;
+  for(let i=Math.max(1,page-2);i<=Math.min(pages,page+2);i++)
+    html+=`<button class="page-btn ${i===page?'active':''}" onclick="loadTable(${i})">${i}</button>`;
+  if(page<pages) html+=`<button class="page-btn" onclick="loadTable(${page+1})">Next ›</button>`;
+  document.getElementById('pagination').innerHTML=html;
+}
+
+function toggleForm(){
+  const f=document.getElementById('incident-form');
+  f.style.display=f.style.display==='none'?'block':'none';
+}
+
+function applyLocationDetails(){
+  if(!document.getElementById('f-beat')) return;
+  const selected=Number(document.getElementById('f-beat').value);
+  const location=knownLocations[selected];
+  if(!location) return;
+  document.getElementById('f-district').value=location.district;
+  document.getElementById('f-lat').value=location.latitude.toFixed(4);
+  document.getElementById('f-lon').value=location.longitude.toFixed(4);
+}
+
+function submitIncident(){
+  const selectedLocation=knownLocations[Number(document.getElementById('f-beat').value)];
+  const payload={
+    report_date: document.getElementById('f-date').value,
+    state: selectedLocation ? selectedLocation.state : 'India',
+    district: document.getElementById('f-district').value,
+    forest_beat: selectedLocation ? selectedLocation.name : document.getElementById('f-beat').value,
+    animal_species: document.getElementById('f-species').value,
+    conflict_type: document.getElementById('f-conflict').value,
+    season: document.getElementById('f-season').value,
+    risk_score: document.getElementById('f-risk').value,
+    response_action: document.getElementById('f-action').value,
+    human_casualties: document.getElementById('f-casualties').value,
+    livestock_loss: document.getElementById('f-livestock').value,
+    crop_damage_ha: document.getElementById('f-crop').value,
+    latitude: document.getElementById('f-lat').value,
+    longitude: document.getElementById('f-lon').value,
+    officer_notes: document.getElementById('f-notes').value,
+  };
+  fetch('/api/incidents/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r=>r.json()).then(d=>{
+      const a=document.getElementById('form-alert');
+      if(d.success){
+        a.innerHTML='<div class="alert alert-success">✅ Incident #'+d.incident_id+' saved successfully!</div>';
+        setTimeout(()=>{a.innerHTML='';},4000);
+        loadTable(1);
+      }
+    });
+}
+
+loadTable(1);
+</script>
+{% endblock %}
