@@ -42,10 +42,10 @@
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Name</th><th>Username</th><th>Role</th><th>Status</th><th>Action</th></tr>
+          <tr><th>Name</th><th>Username</th><th>Mobile</th><th>Role</th><th>Status</th><th>Action</th></tr>
         </thead>
         <tbody id="users-body">
-          <tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:30px">Loading users</td></tr>
+          <tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:30px">Loading users</td></tr>
         </tbody>
       </table>
     </div>
@@ -60,9 +60,10 @@ function loadUsers(){
       <tr>
         <td>${u.name || u.username}</td>
         <td style="color:var(--text-muted)">${u.username}</td>
+        <td style="color:var(--text-muted)">${u.mobile || '-'}</td>
         <td><span class="chip ${u.role==='admin'?'chip-info':'chip-success'}">${u.role}</span></td>
         <td><span class="chip ${u.active?'chip-success':'chip-danger'}">${u.active?'Active':'Disabled'}</span></td>
-        <td><button class="page-btn" onclick="toggleUser('${u.username}')">${u.active?'Disable':'Enable'}</button></td>
+        <td>${u.role==='admin' ? '<span class="card-muted">Protected</span>' : `<button class="page-btn" onclick="toggleUser('${u.username}')">${u.active?'Disable':'Enable'}</button>`}</td>
       </tr>`).join('');
   });
 }

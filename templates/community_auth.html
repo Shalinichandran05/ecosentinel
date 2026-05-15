@@ -20,6 +20,10 @@
     button, .link-btn { min-height:44px; border-radius:8px; display:flex; align-items:center; justify-content:center; text-decoration:none; font:inherit; font-size:13px; font-weight:800; }
     button { border:1px solid #2dd4bf; background:#2dd4bf; color:#05201d; cursor:pointer; }
     .link-btn { border:1px solid #334155; color:#a8b5c7; margin-top:10px; }
+    .google-btn { border-color:#475569; background:#f8fafc; color:#0f172a; gap:10px; margin-top:12px; }
+    .google-btn[aria-disabled="true"] { opacity:.55; pointer-events:none; }
+    .divider { display:flex; align-items:center; gap:12px; color:#64748b; font-size:11px; font-weight:800; text-transform:uppercase; letter-spacing:.8px; margin:18px 0; }
+    .divider::before, .divider::after { content:""; height:1px; background:#334155; flex:1; }
     .alert { padding:12px 14px; border-radius:8px; font-size:13px; margin-bottom:16px; line-height:1.5; }
     .alert-success { background:rgba(52,211,153,.1); border:1px solid rgba(52,211,153,.34); color:#34d399; }
     .alert-error { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.34); color:#fca5a5; }
@@ -50,12 +54,24 @@
         <label for="email">Email</label>
         <input id="email" name="email" type="email" autocomplete="email" required/>
       </div>
+      {% if mode == 'signup' %}
+      <div>
+        <label for="mobile">Mobile Number</label>
+        <input id="mobile" name="mobile" type="tel" autocomplete="tel" required/>
+      </div>
+      {% endif %}
       <div>
         <label for="password">Password</label>
         <input id="password" name="password" type="password" autocomplete="{% if mode == 'signup' %}new-password{% else %}current-password{% endif %}" required/>
       </div>
       <button type="submit">{% if mode == 'signup' %}Create Account{% else %}Login to Community Dashboard{% endif %}</button>
     </form>
+
+    <div class="divider">or</div>
+    <a class="link-btn google-btn" href="/community-google" {% if not google_enabled %}aria-disabled="true"{% endif %}>
+      <span style="font-size:16px;font-weight:800">G</span>
+      Continue with Google
+    </a>
 
     {% if mode == 'signup' %}
       <a class="link-btn" href="/community-login">Already registered? Login</a>

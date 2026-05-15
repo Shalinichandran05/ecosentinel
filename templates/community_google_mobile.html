@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EcoSentinel - Mobile Number</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { min-height:100vh; display:grid; place-items:center; background:#0b1220; color:#e5edf7; font-family:Inter,Arial,sans-serif; padding:24px; }
+    .panel { width:min(440px,100%); background:#101827; border:1px solid #26364d; border-radius:10px; padding:30px; box-shadow:0 24px 60px rgba(0,0,0,.32); }
+    .brand { color:#2dd4bf; font-weight:800; margin-bottom:8px; }
+    h1 { font-size:24px; margin-bottom:8px; }
+    p { color:#a8b5c7; font-size:13px; line-height:1.7; margin-bottom:20px; }
+    form { display:grid; gap:15px; }
+    label { display:block; color:#a8b5c7; font-size:12px; font-weight:700; margin-bottom:7px; }
+    input { width:100%; min-height:42px; border:1px solid #334155; border-radius:8px; background:#0b1220; color:#e5edf7; padding:10px 12px; font:inherit; font-size:13px; }
+    input:focus { outline:none; border-color:#2dd4bf; }
+    button { min-height:44px; border:1px solid #2dd4bf; border-radius:8px; background:#2dd4bf; color:#05201d; font:inherit; font-size:13px; font-weight:800; cursor:pointer; }
+    .alert { padding:12px 14px; border-radius:8px; font-size:13px; margin-bottom:16px; line-height:1.5; }
+    .alert-error { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.34); color:#fca5a5; }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <div class="brand">EcoSentinel Community</div>
+    <h1>Confirm Mobile Number</h1>
+    <p>Google verified {{ profile.email }}. Add a mobile number so officers can contact you about reports.</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-error">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="post">
+      <div>
+        <label for="mobile">Mobile Number</label>
+        <input id="mobile" name="mobile" type="tel" autocomplete="tel" required/>
+      </div>
+      <button type="submit">Continue to Community Dashboard</button>
+    </form>
+  </main>
+</body>
+</html>

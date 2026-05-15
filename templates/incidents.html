@@ -18,8 +18,12 @@
         <input type="date" id="f-date" value="2025-01-01"/>
       </div>
       <div class="form-group">
+        <label>State</label>
+        <select id="f-state" onchange="handleStateChange()"></select>
+      </div>
+      <div class="form-group">
         <label>District</label>
-        <select id="f-district"></select>
+        <select id="f-district" onchange="handleDistrictChange()"></select>
       </div>
       <div class="form-group">
         <label>Place / Forest Area</label>
@@ -127,6 +131,7 @@
 let currentPage=1;
 const perPage=12;
 let knownLocations=[];
+let knownStateDistricts={};
 const formatDate = value => {
   if (!value) return '';
   if (typeof value === 'string') return value.slice(0, 10);
@@ -136,14 +141,25 @@ const formatDate = value => {
 const incidentDate = row => formatDate(row.report_date) || formatDate(row.created_at);
 
 fetch('/api/filters').then(r=>r.json()).then(f=>{
-  knownLocations=f.locations || [];
-  const locationNameCounts=knownLocations.reduce((acc,l)=>{acc[l.name]=(acc[l.name]||0)+1; return acc;}, {});
+  knownLocations=(f.locations || []).sort((a,b)=>
+    (a.state || '').localeCompare(b.state || '') ||
+    (a.district || '').localeCompare(b.district || '') ||
+    (a.name || '').localeCompare(b.name || '')
+  );
+  knownStateDistricts=knownLocations.reduce((acc,location)=>{
+    const state=location.state || '';
+    const district=location.district || '';
+    if(!state || !district) return acc;
+    if(!acc[state]) acc[state]=new Set();
+    acc[state].add(district);
+    return acc;
+  }, {});
   fillSelect('fil-species',   f.species);
   fillSelect('fil-district',  f.districts);
   fillSelect('fil-season',    f.seasons);
   fillSelect('fil-risk',      f.risk_categories);
-  fillSelect('f-district',    f.districts, false);
-  fillLocationSelect(locationNameCounts);
+  fillSelect('f-state',       f.states, false);
+  handleStateChange();
   fillSelect('f-species',     f.species,   false);
   fillSelect('f-conflict',    f.conflict_types, false);
   fillSelect('f-season',      f.seasons,   false);
@@ -156,12 +172,49 @@ function fillSelect(id, opts, withAll=true){
   opts.forEach(o=>{ const opt=document.createElement('option'); opt.value=o; opt.textContent=o; sel.appendChild(opt); });
 }
 
-function fillLocationSelect(nameCounts){
+function resetSelect(id){
+  const sel=document.getElementById(id);
+  if(!sel) return;
+  sel.innerHTML='';
+}
+
+function selectedState(){
+  const el=document.getElementById('f-state');
+  return el ? el.value : '';
+}
+
+function selectedDistrict(){
+  const el=document.getElementById('f-district');
+  return el ? el.value : '';
+}
+
+function handleStateChange(){
+  const state=selectedState();
+  const districts=Array.from(knownStateDistricts[state] || []).sort((a,b)=>a.localeCompare(b));
+  resetSelect('f-district');
+  fillSelect('f-district', districts, false);
+  handleDistrictChange();
+}
+
+function handleDistrictChange(){
+  fillLocationSelect();
+  applyLocationDetails();
+}
+
+function fillLocationSelect(){
   const sel=document.getElementById('f-beat');
   if(!sel) return;
-  knownLocations.forEach((location,index)=>{
+  sel.innerHTML='';
+  const state=selectedState();
+  const district=selectedDistrict();
+  const filteredLocations=knownLocations
+    .map((location,index)=>({...location, sourceIndex:index}))
+    .filter(location=>(!state || location.state===state) && (!district || location.district===district))
+    .sort((a,b)=>(a.name || '').localeCompare(b.name || ''));
+  const nameCounts=filteredLocations.reduce((acc,l)=>{acc[l.name]=(acc[l.name]||0)+1; return acc;}, {});
+  filteredLocations.forEach(location=>{
     const opt=document.createElement('option');
-    opt.value=String(index);
+    opt.value=String(location.sourceIndex);
     opt.textContent=nameCounts[location.name]>1 ? `${location.name} (${location.district}, ${location.state})` : `${location.name} (${location.state})`;
     sel.appendChild(opt);
   });
@@ -222,6 +275,7 @@ function applyLocationDetails(){
   const selected=Number(document.getElementById('f-beat').value);
   const location=knownLocations[selected];
   if(!location) return;
+  document.getElementById('f-state').value=location.state;
   document.getElementById('f-district').value=location.district;
   document.getElementById('f-lat').value=location.latitude.toFixed(4);
   document.getElementById('f-lon').value=location.longitude.toFixed(4);
@@ -231,7 +285,7 @@ function submitIncident(){
   const selectedLocation=knownLocations[Number(document.getElementById('f-beat').value)];
   const payload={
     report_date: document.getElementById('f-date').value,
-    state: selectedLocation ? selectedLocation.state : 'India',
+    state: selectedLocation ? selectedLocation.state : document.getElementById('f-state').value,
     district: document.getElementById('f-district').value,
     forest_beat: selectedLocation ? selectedLocation.name : document.getElementById('f-beat').value,
     animal_species: document.getElementById('f-species').value,

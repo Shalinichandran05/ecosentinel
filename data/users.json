@@ -1,16 +1,20 @@
 [
   {
     "username": "admin",
-    "password_hash": "scrypt:32768:8:1$VtXn92AT85gfl9kV$d3d281b1d3dfb4f92408fb785927b36aee7afdc61cbea907f71cde3be239e364b7a6d0abfc2ffa890a916828adc122824d0a05fefc9f2c90dc938f78a245d0ea",
+    "password_hash": "scrypt:32768:8:1$vRFYnagJYxQ2TOLp$9c19446ae8ee9c12f8c1e0d447d379390072f715376757ee007545f79aee0940dd9580b6dcc8a5b0d104b473f2e2d7480cd42dc080426471f891c78d83a09b4c",
     "role": "admin",
     "name": "System Admin",
+    "mobile": "",
+    "auth_provider": "local",
     "active": true
   },
   {
     "username": "officer",
-    "password_hash": "scrypt:32768:8:1$HJP7COKzbHriSJNn$20041af09cf7f049199d3e3b9624f0bb3895a0185086f31db492b2e8871dc712549943d9f31acec32cc4b272c3b252840023c26cf7eb4b72a4cec7de13dd56fd",
+    "password_hash": "scrypt:32768:8:1$z14yOQ1zljFjevx6$18a545b78fb269405fc15b1fdf213de1d3b389fdc2ad0e4d5508c2a96ffd9047faff51c73d6b71c68f4f8ec1dbce8fa104677fe23027496edf5242bb83c96610",
     "role": "officer",
     "name": "Field Officer",
+    "mobile": "",
+    "auth_provider": "local",
     "active": true
   }
 ]

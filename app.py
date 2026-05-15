@@ -6,6 +6,10 @@ import base64
 import io
 import json
 import os
+import secrets
+import urllib.error
+import urllib.parse
+import urllib.request
 from datetime import datetime
 from functools import wraps
 
@@ -161,6 +165,70 @@ def dashboard_for_role(role):
         return "officer_dashboard"
     return "community_dashboard"
 
+def google_oauth_configured():
+    return bool(os.environ.get("GOOGLE_CLIENT_ID") and os.environ.get("GOOGLE_CLIENT_SECRET"))
+
+def google_redirect_uri():
+    return url_for("community_google_callback", _external=True)
+
+def exchange_google_code(code):
+    token_payload = urllib.parse.urlencode({
+        "code": code,
+        "client_id": os.environ.get("GOOGLE_CLIENT_ID", ""),
+        "client_secret": os.environ.get("GOOGLE_CLIENT_SECRET", ""),
+        "redirect_uri": google_redirect_uri(),
+        "grant_type": "authorization_code",
+    }).encode("utf-8")
+    token_request = urllib.request.Request(
+        "https://oauth2.googleapis.com/token",
+        data=token_payload,
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+        method="POST",
+    )
+    with urllib.request.urlopen(token_request, timeout=10) as response:
+        token_data = json.loads(response.read().decode("utf-8"))
+    access_token = token_data.get("access_token")
+    if not access_token:
+        raise ValueError("Google did not return an access token")
+    user_request = urllib.request.Request(
+        "https://www.googleapis.com/oauth2/v3/userinfo",
+        headers={"Authorization": f"Bearer {access_token}"},
+    )
+    with urllib.request.urlopen(user_request, timeout=10) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+def login_user_model(user):
+    session.clear()
+    session["username"] = user.username
+    session["role"] = user.role
+    session["name"] = user.name or user.username
+
+def create_or_update_google_community_user(profile, mobile):
+    email = (profile.get("email") or "").strip().lower()
+    if not email:
+        raise ValueError("Google account did not provide an email address")
+    user = User.query.filter_by(username=email).first()
+    if user and user.role != "community":
+        raise ValueError("This email is already used by a system access account")
+    if not user:
+        user = User(
+            username=email,
+            password_hash=generate_password_hash(secrets.token_urlsafe(32)),
+            role="community",
+            name=(profile.get("name") or email).strip(),
+            mobile=mobile,
+            auth_provider="google",
+            active=True,
+        )
+        db.session.add(user)
+    else:
+        user.name = (profile.get("name") or user.name or email).strip()
+        user.mobile = mobile
+        user.auth_provider = "google"
+        user.active = True
+    db.session.commit()
+    return user
+
 @app.context_processor
 def inject_user():
     return {"current_user": current_user()}
@@ -240,10 +308,7 @@ def login():
         password = request.form.get("password", "")
         user = User.query.filter_by(username=username).first()
         if user and user.active and check_password_hash(user.password_hash, password):
-            session.clear()
-            session["username"] = user.username
-            session["role"] = user.role
-            session["name"] = user.name or user.username
+            login_user_model(user)
             target = request.args.get("next")
             if target:
                 return redirect(target)
@@ -258,22 +323,20 @@ def community_login():
         password = request.form.get("password", "")
         user = User.query.filter_by(username=email, role="community").first()
         if user and user.active and check_password_hash(user.password_hash, password):
-            session.clear()
-            session["username"] = user.username
-            session["role"] = user.role
-            session["name"] = user.name or user.username
+            login_user_model(user)
             return redirect(url_for("community_dashboard"))
         flash("Invalid community login details.", "error")
-    return render_template("community_auth.html", mode="login")
+    return render_template("community_auth.html", mode="login", google_enabled=google_oauth_configured())
 
 @app.route("/community-signup", methods=["GET", "POST"])
 def community_signup():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         email = request.form.get("email", "").strip().lower()
+        mobile = request.form.get("mobile", "").strip()
         password = request.form.get("password", "")
-        if not name or not email or not password:
-            flash("Name, email, and password are required.", "error")
+        if not name or not email or not mobile or not password:
+            flash("Name, email, mobile number, and password are required.", "error")
         elif User.query.filter_by(username=email).first():
             flash("An account already exists for this email.", "error")
         else:
@@ -282,12 +345,75 @@ def community_signup():
                 password_hash=generate_password_hash(password),
                 role="community",
                 name=name,
+                mobile=mobile,
+                auth_provider="local",
                 active=True,
             ))
             db.session.commit()
             flash("Community account created. Please log in.", "success")
             return redirect(url_for("community_login"))
-    return render_template("community_auth.html", mode="signup")
+    return render_template("community_auth.html", mode="signup", google_enabled=google_oauth_configured())
+
+@app.route("/community-google")
+def community_google_start():
+    if not google_oauth_configured():
+        flash("Google sign-in is not configured yet. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET before deployment.", "error")
+        return redirect(url_for("community_login"))
+    state = secrets.token_urlsafe(24)
+    session["google_oauth_state"] = state
+    params = urllib.parse.urlencode({
+        "client_id": os.environ.get("GOOGLE_CLIENT_ID"),
+        "redirect_uri": google_redirect_uri(),
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "prompt": "select_account",
+    })
+    return redirect("https://accounts.google.com/o/oauth2/v2/auth?" + params)
+
+@app.route("/community-google/callback")
+def community_google_callback():
+    if request.args.get("state") != session.get("google_oauth_state"):
+        flash("Google sign-in could not be verified. Please try again.", "error")
+        return redirect(url_for("community_login"))
+    code = request.args.get("code", "")
+    if not code:
+        flash("Google sign-in was cancelled.", "error")
+        return redirect(url_for("community_login"))
+    try:
+        profile = exchange_google_code(code)
+    except (ValueError, urllib.error.URLError, TimeoutError):
+        flash("Unable to complete Google sign-in right now.", "error")
+        return redirect(url_for("community_login"))
+    if not profile.get("email_verified", False):
+        flash("Please use a verified Google email address.", "error")
+        return redirect(url_for("community_login"))
+    session.pop("google_oauth_state", None)
+    session["pending_google_community"] = {
+        "email": (profile.get("email") or "").strip().lower(),
+        "name": (profile.get("name") or "").strip(),
+    }
+    return redirect(url_for("community_google_mobile"))
+
+@app.route("/community-google/mobile", methods=["GET", "POST"])
+def community_google_mobile():
+    profile = session.get("pending_google_community")
+    if not profile:
+        return redirect(url_for("community_login"))
+    if request.method == "POST":
+        mobile = request.form.get("mobile", "").strip()
+        if not mobile:
+            flash("Mobile number is required to continue.", "error")
+        else:
+            try:
+                user = create_or_update_google_community_user(profile, mobile)
+            except ValueError as exc:
+                flash(str(exc), "error")
+                return redirect(url_for("community_login"))
+            session.pop("pending_google_community", None)
+            login_user_model(user)
+            return redirect(url_for("community_dashboard"))
+    return render_template("community_google_mobile.html", profile=profile)
 
 @app.route("/logout")
 def logout():
@@ -397,9 +523,9 @@ def api_filters():
         location_df = (
             df[location_cols]
             .dropna(subset=["forest_beat"])
-            .groupby(["state", "forest_beat", "district"], as_index=False)
+            .groupby(["state", "district", "forest_beat"], as_index=False)
             .agg(latitude=("latitude", "mean"), longitude=("longitude", "mean"))
-            .sort_values(["state", "forest_beat", "district"])
+            .sort_values(["state", "district", "forest_beat"])
         )
         locations = [
             {
@@ -500,6 +626,7 @@ def add_community_report():
         reporter_user_id=current_model_user.id if current_model_user else None,
         reporter_name=current_model_user.name if current_model_user else session.get("name", ""),
         reporter_email=current_model_user.username if current_model_user else session.get("username", ""),
+        reporter_mobile=current_model_user.mobile if current_model_user else "",
         state=(data.get("state") or "").strip(),
         district=(data.get("district") or "").strip(),
         place=(data.get("place") or "").strip(),
@@ -559,6 +686,8 @@ def toggle_user(username):
         return jsonify({"success": False, "error": "User not found"}), 404
     if username == session.get("username"):
         return jsonify({"success": False, "error": "You cannot disable your own account"}), 400
+    if user.role == "admin":
+        return jsonify({"success": False, "error": "Admin accounts cannot be disabled"}), 400
     user.active = not user.active
     db.session.commit()
     return jsonify({"success": True, "active": user.active})

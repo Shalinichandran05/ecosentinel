@@ -244,6 +244,7 @@ function loadCommunityReports(){
             <div class="report-title">${escapeHtml(r.place || r.district || 'Unspecified location')}</div>
             <div class="report-meta">${escapeHtml(r.district)} · ${escapeHtml(r.state)} · ${escapeHtml(r.incident_date)}</div>
             <div class="report-meta">From ${escapeHtml(r.reporter_name)} (${escapeHtml(r.reporter_email)})</div>
+            <div class="report-meta">Mobile: ${escapeHtml(r.reporter_mobile || 'Not provided')}</div>
           </div>
           <span class="chip ${r.status==='New'?'chip-warning':'chip-success'}">${escapeHtml(r.status)}</span>
         </div>

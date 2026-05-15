@@ -1,11 +1,13 @@
 from datetime import date, datetime
 import json
 import os
+import secrets
 
 import pandas as pd
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash
+from sqlalchemy import inspect, text
 
 
 BASE_DIR = os.path.dirname(__file__)
@@ -57,6 +59,8 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="officer")
     name = db.Column(db.String(120), nullable=False)
+    mobile = db.Column(db.String(30), nullable=False, default="")
+    auth_provider = db.Column(db.String(30), nullable=False, default="local")
     active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
@@ -79,6 +83,8 @@ class User(db.Model):
             "username": self.username,
             "role": self.role,
             "name": self.name,
+            "mobile": self.mobile,
+            "auth_provider": self.auth_provider,
             "active": self.active,
             "created_at": self.created_at.isoformat() if self.created_at else "",
         }
@@ -148,6 +154,7 @@ class CommunityReport(db.Model):
     reporter_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     reporter_name = db.Column(db.String(120), nullable=False, default="")
     reporter_email = db.Column(db.String(120), nullable=False, default="")
+    reporter_mobile = db.Column(db.String(30), nullable=False, default="")
     state = db.Column(db.String(120), nullable=False, default="")
     district = db.Column(db.String(120), nullable=False, default="")
     place = db.Column(db.String(160), nullable=False, default="")
@@ -165,6 +172,7 @@ class CommunityReport(db.Model):
             "id": self.id,
             "reporter_name": self.reporter_name,
             "reporter_email": self.reporter_email,
+            "reporter_mobile": self.reporter_mobile,
             "state": self.state,
             "district": self.district,
             "place": self.place,
@@ -186,9 +194,11 @@ def init_database(app):
 
 
 def default_users():
+    admin_password = os.environ.get("ECOSENTINEL_ADMIN_PASSWORD") or secrets.token_urlsafe(18)
+    officer_password = os.environ.get("ECOSENTINEL_OFFICER_PASSWORD") or secrets.token_urlsafe(18)
     return [
-        {"username": "admin", "password_hash": generate_password_hash("admin123"), "role": "admin", "name": "System Admin", "active": True},
-        {"username": "officer", "password_hash": generate_password_hash("officer123"), "role": "officer", "name": "Field Officer", "active": True},
+        {"username": "admin", "password_hash": generate_password_hash(admin_password), "role": "admin", "name": "System Admin", "active": True},
+        {"username": "officer", "password_hash": generate_password_hash(officer_password), "role": "officer", "name": "Field Officer", "active": True},
     ]
 
 
@@ -248,8 +258,43 @@ def seed_users_if_needed():
             password_hash=item["password_hash"],
             role=item.get("role", "officer"),
             name=item.get("name") or item["username"],
+            mobile=item.get("mobile", ""),
+            auth_provider=item.get("auth_provider", "local"),
             active=bool(item.get("active", True)),
         ))
+    db.session.commit()
+
+
+def sync_builtin_passwords_from_env():
+    password_envs = {
+        "admin": os.environ.get("ECOSENTINEL_ADMIN_PASSWORD"),
+        "officer": os.environ.get("ECOSENTINEL_OFFICER_PASSWORD"),
+    }
+    updated = False
+    for username, password in password_envs.items():
+        if not password:
+            continue
+        user = User.query.filter_by(username=username).first()
+        if user:
+            user.password_hash = generate_password_hash(password)
+            updated = True
+    if updated:
+        db.session.commit()
+
+
+def ensure_schema():
+    inspector = inspect(db.engine)
+    if not inspector.has_table("users"):
+        return
+    user_columns = {column["name"] for column in inspector.get_columns("users")}
+    if "mobile" not in user_columns:
+        db.session.execute(text("ALTER TABLE users ADD COLUMN mobile VARCHAR(30) NOT NULL DEFAULT ''"))
+    if "auth_provider" not in user_columns:
+        db.session.execute(text("ALTER TABLE users ADD COLUMN auth_provider VARCHAR(30) NOT NULL DEFAULT 'local'"))
+    if inspector.has_table("community_reports"):
+        report_columns = {column["name"] for column in inspector.get_columns("community_reports")}
+        if "reporter_mobile" not in report_columns:
+            db.session.execute(text("ALTER TABLE community_reports ADD COLUMN reporter_mobile VARCHAR(30) NOT NULL DEFAULT ''"))
     db.session.commit()
 
 
@@ -296,6 +341,8 @@ def repair_incident_dates():
 
 def initialize_database():
     db.create_all()
+    ensure_schema()
     seed_users_if_needed()
+    sync_builtin_passwords_from_env()
     seed_incidents_if_needed()
     repair_incident_dates()
