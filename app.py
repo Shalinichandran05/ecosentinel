@@ -465,7 +465,10 @@ def bi_page():
 @app.route("/map")
 @role_required("admin", "officer", "community")
 def map_page():
-    return render_template("map.html")
+    return render_template(
+        "map.html",
+        carto_api_key=os.environ.get("CARTO_API_KEY", "")
+    )
 
 @app.route("/community-report")
 @role_required("community")

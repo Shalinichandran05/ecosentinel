@@ -35,9 +35,15 @@
 
 <script>
 const map = L.map('map').setView([11.1,78.7],7);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
-  attribution:'&copy; OpenStreetMap contributors &copy; CARTO',
-  subdomains:'abcd', maxZoom:19
+const cartoApiKey = "{{ carto_api_key }}";
+
+const tileUrl =
+  `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${encodeURIComponent(cartoApiKey)}`;
+
+L.tileLayer(tileUrl, {
+  attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+  subdomains: 'abcd',
+  maxZoom: 19
 }).addTo(map);
 
 let allData=[], markers=[];
